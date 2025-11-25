@@ -13,4 +13,6 @@ dependencies = [
     "sqlalchemy>=2.0.44",
     "uvicorn[standard]>=0.38.0",
     "aiosqlite>=0.20.0",
+    "greenlet>=3.0.0",
+    "requests>=2.32.5",
 ]
