@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     debug: bool = True
 
     # Database
-    database_url: str = "sqlite+aiosqlite:///./test.db"
+    database_url: str = "postgresql+asyncpg://taskuser:taskpass@localhost:5433/task_runner"
 
     # API
     api_v1_str: str = "/api/v1"

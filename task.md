@@ -18,7 +18,7 @@
     *   ORM (SQLAlchemy) vs Raw SQL。
     *   Alembic 的作用：像 Git 管理代码一样管理数据库结构的变更。
 *   **实践**：
-    *   本地安装 PostgreSQL。
+    *   本地通过 Docker 安装 PostgreSQL。
     *   定义 `Task` 数据库模型（ID, status, result, created_at）。
     *   使用 Alembic 初始化并生成第一个迁移文件（Migration）。
     *   在 API 中实现：接收请求 -> 存入数据库（状态为 `PENDING`） -> 返回 Task ID。
