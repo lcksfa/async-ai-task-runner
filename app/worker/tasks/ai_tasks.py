@@ -6,7 +6,6 @@ import time
 import random
 from app.worker.app import celery_app
 from app.models import TaskStatus
-from app.crud.task import update_task_status, update_task_result
 
 
 @celery_app.task(bind=True, name="run_ai_text_generation")
@@ -19,6 +18,9 @@ def run_ai_text_generation(self, task_id: str, prompt: str, model: str = "gpt-3.
         print(f"🤖 开始处理AI文本生成任务: {task_id}")
         print(f"📝 Prompt: {prompt}")
         print(f"🧠 Model: {model}")
+
+        # 导入CRUD函数（避免循环导入）
+        from app.crud.task import update_task_status, update_task_result
 
         # 更新任务状态为处理中
         update_task_status(task_id, TaskStatus.PROCESSING)

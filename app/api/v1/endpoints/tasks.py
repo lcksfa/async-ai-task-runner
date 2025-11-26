@@ -4,6 +4,7 @@ from typing import List
 from app.schemas import TaskCreate, TaskResponse
 from app.database import get_db
 from app.crud import task as task_crud
+from app.worker.tasks.ai_tasks import run_ai_text_generation
 
 router = APIRouter()
 
@@ -21,9 +22,26 @@ async def create_task(
     - **priority**: Task priority from 1-10 (default: 1)
 
     Returns the created task with assigned ID and timestamps.
+
+    The task will be processed asynchronously in the background.
     """
     try:
+        # 1. Create task record in database
         task = await task_crud.create_task(db=db, obj_in=task_in)
+
+        # 2. Trigger Celery task for AI processing
+        try:
+            # Convert task.id to string for Celery compatibility
+            run_ai_text_generation.delay(
+                task_id=str(task.id),
+                prompt=task.prompt,
+                model=task.model or "gpt-3.5-turbo"
+            )
+            print(f"🚀 Celery task triggered for task_id: {task.id}")
+        except Exception as celery_error:
+            print(f"⚠️ Failed to trigger Celery task: {celery_error}")
+            # Continue without Celery - task will remain in PENDING state
+
         return task
     except Exception as e:
         raise HTTPException(

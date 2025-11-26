@@ -58,7 +58,13 @@ async def delete_task(db: AsyncSession, *, task_id: int) -> bool:
 def update_task_status_sync(db: Session, task_id: str, status: TaskStatus) -> bool:
     """Update task status (synchronous version for Celery)"""
     try:
-        task = db.query(Task).filter(Task.id == task_id).first()
+        # Try to convert string ID to integer for database query
+        try:
+            int_id = int(task_id)
+            task = db.query(Task).filter(Task.id == int_id).first()
+        except ValueError:
+            task = db.query(Task).filter(Task.id == task_id).first()
+
         if task:
             task.status = status
             db.commit()
@@ -73,7 +79,13 @@ def update_task_status_sync(db: Session, task_id: str, status: TaskStatus) -> bo
 def update_task_result_sync(db: Session, task_id: str, status: TaskStatus, result: str = None) -> bool:
     """Update task status and result (synchronous version for Celery)"""
     try:
-        task = db.query(Task).filter(Task.id == task_id).first()
+        # Try to convert string ID to integer for database query
+        try:
+            int_id = int(task_id)
+            task = db.query(Task).filter(Task.id == int_id).first()
+        except ValueError:
+            task = db.query(Task).filter(Task.id == task_id).first()
+
         if task:
             task.status = status
             if result:
@@ -89,19 +101,32 @@ def update_task_result_sync(db: Session, task_id: str, status: TaskStatus, resul
 
 def get_task_sync(db: Session, task_id: str) -> Optional[Task]:
     """Get a task by ID (synchronous version for Celery)"""
-    return db.query(Task).filter(Task.id == task_id).first()
+    try:
+        # Try to convert string ID to integer for database query
+        try:
+            int_id = int(task_id)
+            return db.query(Task).filter(Task.id == int_id).first()
+        except ValueError:
+            return db.query(Task).filter(Task.id == task_id).first()
+    except Exception as e:
+        print(f"Error getting task: {e}")
+        return None
 
 
 # 为了向后兼容，保留原来的函数名
-def update_task_status(task_id: str, status: TaskStatus) -> bool:
+def update_task_status(task_id, status: TaskStatus) -> bool:
     """Update task status using synchronous database session"""
     from app.database import get_sync_db_session
+    # Handle both string and integer task IDs
+    task_id_str = str(task_id) if isinstance(task_id, int) else task_id
     with get_sync_db_session() as db:
-        return update_task_status_sync(db, task_id, status)
+        return update_task_status_sync(db, task_id_str, status)
 
 
-def update_task_result(task_id: str, status: TaskStatus, result: str = None) -> bool:
+def update_task_result(task_id, status: TaskStatus, result: str = None) -> bool:
     """Update task result using synchronous database session"""
     from app.database import get_sync_db_session
+    # Handle both string and integer task IDs
+    task_id_str = str(task_id) if isinstance(task_id, int) else task_id
     with get_sync_db_session() as db:
-        return update_task_result_sync(db, task_id, status, result)
+        return update_task_result_sync(db, task_id_str, status, result)
