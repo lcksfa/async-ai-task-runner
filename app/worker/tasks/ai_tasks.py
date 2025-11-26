@@ -4,6 +4,7 @@ AI相关的Celery任务
 """
 import time
 import random
+from datetime import datetime
 from app.worker.app import celery_app
 from app.models import TaskStatus
 

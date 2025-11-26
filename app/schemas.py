@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer
 from typing import Optional
 from datetime import datetime
 from enum import Enum
@@ -37,6 +37,15 @@ class TaskResponse(TaskBase):
     result: Optional[str] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
+
+    @field_serializer('created_at', 'updated_at')
+    def serialize_datetime(self, value: Optional[datetime]) -> Optional[str]:
+        """将UTC时间转换为本地时间字符串"""
+        if value is None:
+            return None
+        # 转换为本地时间并格式化
+        local_time = value.astimezone()
+        return local_time.strftime("%Y-%m-%d %H:%M:%S")
 
     class Config:
         from_attributes = True
