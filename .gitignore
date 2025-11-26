@@ -1,4 +1,12 @@
 __pycache__/
 *.pyc
 .env
+.env.local
+.env.*.local
 venv/
+
+# Security files
+*.key
+*.pem
+*.crt
+secrets/

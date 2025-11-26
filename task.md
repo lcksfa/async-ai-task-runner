@@ -71,8 +71,9 @@
     *   “请检查我的代码，看有没有硬编码的敏感信息？”
     *   “如何在 Pydantic 中使用 `BaseSettings` 来读取环境变量？”
 
-#### 🌇 下午：Docker 与 Docker Compose
+#### 🌇 下午：AI API，Docker 与 Docker Compose
 *   **学习重点**：
+    *    接入真实 AI：接入 deepseek 模型，让它真正为你生成内容。
     *   `Dockerfile` 编写（构建镜像）。
     *   `docker-compose.yml` 编排（同时启动 Web, Worker, Postgres, Redis）。
 *   **实践**：
