@@ -1,4 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 from sqlalchemy import select, delete
 from typing import List, Optional
 from app.models import Task
@@ -51,3 +52,56 @@ async def delete_task(db: AsyncSession, *, task_id: int) -> bool:
     result = await db.execute(delete(Task).filter(Task.id == task_id))
     await db.commit()
     return result.rowcount > 0
+
+
+# 同步版本的CRUD函数，用于Celery任务
+def update_task_status_sync(db: Session, task_id: str, status: TaskStatus) -> bool:
+    """Update task status (synchronous version for Celery)"""
+    try:
+        task = db.query(Task).filter(Task.id == task_id).first()
+        if task:
+            task.status = status
+            db.commit()
+            return True
+        return False
+    except Exception as e:
+        db.rollback()
+        print(f"Error updating task status: {e}")
+        return False
+
+
+def update_task_result_sync(db: Session, task_id: str, status: TaskStatus, result: str = None) -> bool:
+    """Update task status and result (synchronous version for Celery)"""
+    try:
+        task = db.query(Task).filter(Task.id == task_id).first()
+        if task:
+            task.status = status
+            if result:
+                task.result = result
+            db.commit()
+            return True
+        return False
+    except Exception as e:
+        db.rollback()
+        print(f"Error updating task result: {e}")
+        return False
+
+
+def get_task_sync(db: Session, task_id: str) -> Optional[Task]:
+    """Get a task by ID (synchronous version for Celery)"""
+    return db.query(Task).filter(Task.id == task_id).first()
+
+
+# 为了向后兼容，保留原来的函数名
+def update_task_status(task_id: str, status: TaskStatus) -> bool:
+    """Update task status using synchronous database session"""
+    from app.database import get_sync_db_session
+    with get_sync_db_session() as db:
+        return update_task_status_sync(db, task_id, status)
+
+
+def update_task_result(task_id: str, status: TaskStatus, result: str = None) -> bool:
+    """Update task result using synchronous database session"""
+    from app.database import get_sync_db_session
+    with get_sync_db_session() as db:
+        return update_task_result_sync(db, task_id, status, result)

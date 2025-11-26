@@ -1,6 +1,8 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import DeclarativeBase, sessionmaker
+from sqlalchemy import create_engine
+from sqlalchemy.orm import DeclarativeBase, sessionmaker, Session
 from app.core.config import settings
+import contextlib
 
 # Create async engine
 engine = create_async_engine(
@@ -26,6 +28,39 @@ async def get_db() -> AsyncSession:
             yield session
         finally:
             await session.close()
+
+
+# Convert async URL to sync URL for Celery tasks
+sync_database_url = settings.database_url.replace("postgresql+asyncpg://", "postgresql://")
+
+# Create sync engine for Celery tasks
+sync_engine = create_engine(
+    sync_database_url,
+    echo=settings.debug,
+)
+
+# Create sync session factory for Celery tasks
+SyncSessionLocal = sessionmaker(
+    sync_engine, autocommit=False, autoflush=False
+)
+
+
+@contextlib.contextmanager
+def get_sync_db_session():
+    """Get synchronous database session for Celery tasks"""
+    session = SyncSessionLocal()
+    try:
+        yield session
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+
+async def get_db_session():
+    """Get async database session (helper function)"""
+    return AsyncSessionLocal()
 
 
 async def init_db():
