@@ -130,3 +130,104 @@ def update_task_result(task_id, status: TaskStatus, result: str = None) -> bool:
     task_id_str = str(task_id) if isinstance(task_id, int) else task_id
     with get_sync_db_session() as db:
         return update_task_result_sync(db, task_id_str, status, result)
+
+
+# MCP-specific CRUD functions
+async def get_tasks_with_filters(
+    db: AsyncSession,
+    skip: int = 0,
+    limit: int = 100,
+    status: Optional[str] = None,
+    created_after: Optional[datetime] = None
+) -> List[Task]:
+    """Get tasks with advanced filtering for MCP"""
+    query = select(Task)
+
+    if status:
+        query = query.filter(Task.status == TaskStatus(status.upper()))
+
+    if created_after:
+        query = query.filter(Task.created_at >= created_after)
+
+    query = query.offset(skip).limit(limit).order_by(Task.created_at.desc())
+
+    result = await db.execute(query)
+    return result.scalars().all()
+
+
+async def get_total_task_count(db: AsyncSession) -> int:
+    """Get total number of tasks"""
+    result = await db.execute(select(Task).count())
+    return result.scalar() or 0
+
+
+async def get_task_counts_by_status(db: AsyncSession) -> List[Task]:
+    """Get task count grouped by status"""
+    from sqlalchemy import func
+
+    result = await db.execute(
+        select(
+            Task.status,
+            func.count(Task.id).label('count')
+        ).group_by(Task.status)
+    )
+
+    status_counts = []
+    for row in result:
+        status_counts.append(Task(status=row.status, count=row.count))
+
+    return status_counts
+
+
+async def get_model_usage_stats(db: AsyncSession) -> dict:
+    """Get usage statistics by AI model"""
+    from sqlalchemy import func
+
+    result = await db.execute(
+        select(
+            Task.model,
+            func.count(Task.id).label('total_tasks'),
+            func.sum(func.case((Task.status == 'COMPLETED', 1), else_=0)).label('completed_tasks')
+        ).group_by(Task.model)
+    )
+
+    usage_stats = {}
+    for row in result:
+        usage_stats[row.model] = type('UsageStats', (), {
+            'total_tasks': row.total_tasks,
+            'completed_tasks': row.completed_tasks or 0
+        })()
+
+    return usage_stats
+
+
+async def get_recent_tasks(db: AsyncSession, hours: int = 24, limit: int = 50) -> List[Task]:
+    """Get recent tasks within specified hours"""
+    from datetime import timedelta
+
+    cutoff_time = datetime.utcnow() - timedelta(hours=hours)
+
+    result = await db.execute(
+        select(Task)
+        .filter(Task.created_at >= cutoff_time)
+        .order_by(Task.created_at.desc())
+        .limit(limit)
+    )
+    return result.scalars().all()
+
+
+async def get_average_processing_time(db: AsyncSession) -> float:
+    """Get average processing time in seconds"""
+    from sqlalchemy import func
+    from datetime import datetime
+
+    result = await db.execute(
+        select(
+            func.avg(
+                func.extract('epoch', Task.updated_at - Task.created_at)
+            )
+        ).filter(Task.status == 'COMPLETED')
+    )
+
+    avg_time = result.scalar()
+    return float(avg_time) if avg_time else 0.0

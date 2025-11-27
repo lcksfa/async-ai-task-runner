@@ -89,27 +89,49 @@
 ### 📅 Day 4: 扩展 AI 能力 (MCP Server)
 **核心任务**：理解并实现 Model Context Protocol，让你的后端能被其他 AI 客户端（如 Claude Desktop）连接。
 
-#### 🌅 上午：理解 MCP (Model Context Protocol)
-*   **学习重点**：
-    *   MCP 是什么？（标准化 AI 连接数据的协议）。
-    *   MCP 的 Resource, Prompt, Tool 概念。
-*   **实践**：
-    *   阅读 MCP 官方文档或观看介绍视频。
-    *   分析你的后端有哪些数据可以暴露给 AI？（例如：查询历史任务记录）。
-*   **🤖 AI 助攻指令**：
-    *   “请用简单的语言解释 MCP 协议解决了什么问题？”
-    *   “MCP Server 和我现有的 FastAPI Server 有什么关系？”
+#### 🌅 上午：理解协议与设计接口
 
-#### 🌇 下午：构建简单的 MCP Server
-*   **学习重点**：
-    *   使用 Python SDK 构建 MCP Server。
-*   **实践**：
-    *   创建一个独立的 MCP 服务（或集成在现有应用中）。
-    *   暴露一个 Tool：`get_task_status(task_id)`。
-    *   尝试用 Claude Desktop 或其他支持 MCP 的客户端连接你的本地服务，让 Claude 能查询你数据库里的任务状态。
-*   **🤖 AI 助攻指令**：
-    *   “请给我一个最简单的 Python MCP Server 示例，暴露一个加法工具。”
-    *   “如何调试 MCP Server 和客户端之间的通信？”
+**1. 理论学习：什么是 MCP？**
+*   **核心概念**：
+    *   **MCP Server**：提供数据（Resources）和功能（Tools）的服务端（我们要写的）。
+    *   **MCP Client**：使用这些能力的客户端（如 Claude Desktop, Cursor, IDEs）。
+    *   **Transport**：它们怎么交流？通常通过 `stdio`（标准输入输出）进行本地通信。
+*   **为什么重要**：以前我们要让 ChatGPT 操作数据库，需要把数据库导出来或者写很复杂的 Plugin。MCP 让这变成了一个标准化的 Python 脚本。
+
+**2. 需求分析：我们要暴露什么给 AI？**
+我们需要把 Day 1-3 做的功能封装成 **Tools（工具）**：
+*   `submit_task(prompt, model)`: 允许 AI 帮我们提交生成任务。
+*   `get_task_status(task_id)`: 允许 AI 查询任务进度和结果。
+*   `list_recent_tasks(limit)`: 允许 AI 查看最近的任务列表。
+
+**3. 环境准备**
+*   安装 MCP 的 Python SDK。
+*   确保昨天的 Docker 环境（FastAPI + Redis + Postgres + Worker）正在运行，因为我们的 MCP Server 将通过 HTTP 请求与它们交互。
+
+---
+
+#### 🌇 下午：代码实现与端到端连接
+
+**1. 编写 MCP Server (`app/mcp_server.py`)**
+*   **技术选型**：使用 `mcp` 官方库中的 `FastMCP`（类似 FastAPI 的高层封装）。
+*   **逻辑实现**：
+    *   创建一个 MCP 实例。
+    *   使用装饰器 `@mcp.tool()` 定义工具函数。
+    *   在工具函数内部，使用 `httpx` 库向 `http://localhost:8000` 发起请求（复用我们现有的 API）。
+    *   *注意：这里我们不直接连数据库，而是通过 API 交互，模拟“AI 是一个用户”的场景，这样更安全且逻辑解耦。*
+
+**2. 配置 Claude Desktop**
+*   找到 Claude Desktop 的配置文件（通常在 `~/Library/Application Support/Claude/claude_desktop_config.json` 或 Windows 对应目录）。
+*   注册我们的 Server：告诉 Claude 启动命令是 `uv run app/mcp_server.py`。
+
+**3. 调试与实战**
+*   **调试**：使用 MCP Inspector（官方调试工具）来测试工具是否能被正确识别。
+*   **实战对话**：
+    *   打开 Claude Desktop。
+    *   输入：“请帮我生成一个关于‘量子力学’的简介，使用 gpt-4 模型。”
+    *   观察：Claude 是否请求调用 `submit_task` 工具？
+    *   输入：“刚才那个任务 ID 是多少？帮我查查它做完了吗？”
+    *   观察：Claude 是否调用 `get_task_status` 并把结果读给你听。
 
 ---
 
