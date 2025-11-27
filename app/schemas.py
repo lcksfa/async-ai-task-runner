@@ -13,7 +13,8 @@ class TaskStatus(str, Enum):
 
 class TaskBase(BaseModel):
     prompt: str = Field(..., min_length=1, max_length=1000, description="The AI prompt to process")
-    model: str = Field(default="gpt-3.5-turbo", description="The AI model to use")
+    model: Optional[str] = Field(default=None, description="The AI model to use (e.g., 'gpt-3.5-turbo', 'deepseek-chat')")
+    provider: Optional[str] = Field(default=None, description="The AI provider to use (e.g., 'openai', 'deepseek', 'anthropic')")
     priority: int = Field(default=1, ge=1, le=10, description="Task priority (1-10)")
 
 

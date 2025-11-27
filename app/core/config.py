@@ -100,6 +100,10 @@ class Settings(BaseSettings):
     anthropic_api_key: Optional[str] = Field(default=None, description="Anthropic API key")
     anthropic_base_url: str = Field(default="https://api.anthropic.com", description="Anthropic API base URL")
 
+    # DeepSeek Configuration
+    deepseek_api_key: Optional[str] = Field(default=None, description="DeepSeek API key")
+    deepseek_base_url: str = Field(default="https://api.deepseek.com", description="DeepSeek API base URL")
+
     # AI Model Configuration
     default_ai_model: str = Field(default="gpt-3.5-turbo", description="Default AI model")
     ai_temperature: float = Field(default=0.7, description="AI temperature parameter")

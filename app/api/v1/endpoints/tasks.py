@@ -35,9 +35,12 @@ async def create_task(
             run_ai_text_generation.delay(
                 task_id=str(task.id),
                 prompt=task.prompt,
-                model=task.model or "gpt-3.5-turbo"
+                model=task.model,
+                provider=task.provider
             )
             print(f"🚀 Celery task triggered for task_id: {task.id}")
+            print(f"🔌 Provider: {task.provider or 'default'}")
+            print(f"🧠 Model: {task.model or 'default'}")
         except Exception as celery_error:
             print(f"⚠️ Failed to trigger Celery task: {celery_error}")
             # Continue without Celery - task will remain in PENDING state

@@ -10,7 +10,8 @@ class Task(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     prompt = Column(Text, nullable=False)
-    model = Column(String(100), nullable=False, default="gpt-3.5-turbo")
+    model = Column(String(100), nullable=True)  # Make nullable to support flexible model selection
+    provider = Column(String(50), nullable=True)  # Add provider field
     priority = Column(Integer, nullable=False, default=1)
     status = Column(Enum(TaskStatus), nullable=False, default=TaskStatus.PENDING)
     result = Column(Text, nullable=True)

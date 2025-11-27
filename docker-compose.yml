@@ -1,0 +1,230 @@
+# 🚀 Async AI Task Runner - Docker Compose配置
+# 多服务编排：Web应用、Worker、PostgreSQL、Redis、Flower监控
+services:
+  # 🗄️ PostgreSQL数据库服务
+  postgres:
+    image: postgres:16-alpine
+    container_name: async_ai_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: task_runner
+      POSTGRES_USER: taskuser
+      POSTGRES_PASSWORD: taskpass
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      # 持久化PostgreSQL数据
+      - postgres_data:/var/lib/postgresql/data
+      # 初始化脚本（可选）
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d
+    ports:
+      # 暴露PostgreSQL端口到主机（仅开发环境）
+      - "5433:5432"
+    networks:
+      - async_ai_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U taskuser -d task_runner"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    labels:
+      - "com.docker.compose.service=postgres"
+      - "project=async-ai-task-runner"
+
+  # 🔴 Redis缓存和消息队列服务
+  redis:
+    image: redis:7-alpine
+    container_name: async_ai_redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+    volumes:
+      # 持久化Redis数据
+      - redis_data:/data
+      # Redis配置文件
+      - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    ports:
+      # 暴露Redis端口到主机（仅开发环境）
+      - "6379:6379"
+    networks:
+      - async_ai_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    labels:
+      - "com.docker.compose.service=redis"
+      - "project=async-ai-task-runner"
+
+  # 🌐 FastAPI Web应用服务
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: async_ai_web
+    restart: unless-stopped
+    environment:
+      # 数据库配置
+      DATABASE_URL: postgresql+asyncpg://taskuser:taskpass@postgres:5432/task_runner
+
+      # Redis配置
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+
+      # 应用配置
+      SECRET_KEY: ${SECRET_KEY:-your-super-secret-key-change-this-in-production}
+      DEBUG: ${DEBUG:-false}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+
+      # AI服务配置
+      # DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      # OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      # ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+
+      # CORS配置
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8000,http://localhost:3000}
+
+      # 日志级别
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    ports:
+      # 暴露FastAPI端口
+      - "8000:8000"
+    volumes:
+      # 挂载代码目录（开发环境热重载）
+      - ./app:/app/app
+      - ./alembic:/app/alembic
+      - ./alembic.ini:/app/alembic.ini
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - async_ai_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "com.docker.compose.service=web"
+      - "project=async-ai-task-runner"
+
+  # ⚙️ Celery Worker服务
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: async_ai_worker
+    restart: unless-stopped
+    environment:
+      # 数据库配置
+      DATABASE_URL: postgresql+asyncpg://taskuser:taskpass@postgres:5432/task_runner
+
+      # Redis配置
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+
+      # 应用配置
+      SECRET_KEY: ${SECRET_KEY:-your-super-secret-key-change-this-in-production}
+      DEBUG: ${DEBUG:-false}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+
+      # AI服务配置
+      # DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      # OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      # ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+
+      # Worker配置
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-4}
+      WORKER_PREFETCH_MULTIPLIER: ${WORKER_PREFETCH_MULTIPLIER:-1}
+      WORKER_MAX_TASKS_PER_CHILD: ${WORKER_MAX_TASKS_PER_CHILD:-1000}
+
+      # 日志级别
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    volumes:
+      # 挂载代码目录（开发环境）
+      - ./app:/app/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - async_ai_network
+    deploy:
+      resources:
+        # 限制Worker的资源使用
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+    labels:
+      - "com.docker.compose.service=worker"
+      - "project=async-ai-task-runner"
+
+  # 🌺 Flower监控服务 (可选)
+  flower:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: async_ai_flower
+    restart: unless-stopped
+    environment:
+      # Redis配置
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+
+      # Flower配置
+      FLOWER_BASIC_AUTH_USER: ${FLOWER_USER:-admin}
+      FLOWER_BASIC_AUTH_PASSWORD: ${FLOWER_PASSWORD:-admin123}
+    ports:
+      # 暴露Flower监控端口
+      - "5555:5555"
+    depends_on:
+      - redis
+      - worker
+    networks:
+      - async_ai_network
+    command: ["uv", "run", "celery", "-A", "app.worker.app", "flower", "--port=5555"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5555/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      - "com.docker.compose.service=flower"
+      - "project=async-ai-task-runner"
+
+# 📁 数据卷定义
+volumes:
+  postgres_data:
+    driver: local
+    labels:
+      - "project=async-ai-task-runner"
+
+  redis_data:
+    driver: local
+    labels:
+      - "project=async-ai-task-runner"
+
+# 🌐 网络定义
+networks:
+  async_ai_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+    labels:
+      - "project=async-ai-task-runner"

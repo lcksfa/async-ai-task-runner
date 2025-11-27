@@ -1,0 +1,225 @@
+# 🏭 Async AI Task Runner - 生产环境Docker Compose配置
+# 优化了安全性和性能的生产级配置
+
+version: '3.8'
+
+services:
+  # 🗄️ PostgreSQL数据库服务 (生产配置)
+  postgres:
+    image: postgres:16-alpine
+    container_name: async_ai_postgres_prod
+    restart: always
+    environment:
+      POSTGRES_DB: task_runner
+      POSTGRES_USER: taskuser
+      # 密码应从环境变量或Docker secrets获取
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # 生产环境初始化脚本
+      - ./docker/postgres/prod-init:/docker-entrypoint-initdb.d
+    networks:
+      - async_ai_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U taskuser -d task_runner"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # 🔴 Redis服务 (生产配置)
+  redis:
+    image: redis:7-alpine
+    container_name: async_ai_redis_prod
+    restart: always
+    command: >
+      redis-server
+      /usr/local/etc/redis/redis.conf
+      --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+      - ./docker/redis/prod-redis.conf:/usr/local/etc/redis/redis.conf:ro
+    networks:
+      - async_ai_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # 🌐 Web应用服务 (生产配置)
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: async_ai_web_prod
+    restart: always
+    environment:
+      # 数据库配置
+      DATABASE_URL: postgresql+asyncpg://taskuser:${POSTGRES_PASSWORD}@postgres:5432/task_runner
+
+      # Redis配置 (带密码)
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      CELERY_BROKER_URL: redis://:${REDIS_PASSWORD}@redis:6379/1
+      CELERY_RESULT_BACKEND: redis://:${REDIS_PASSWORD}@redis:6379/2
+
+      # 应用配置 (必须从环境变量提供)
+      SECRET_KEY: ${SECRET_KEY}
+      DEBUG: false
+      ENVIRONMENT: production
+
+      # AI服务配置
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+
+      # CORS配置 (生产环境限制域)
+      CORS_ORIGINS: ${CORS_ORIGINS}
+
+      # 日志级别
+      LOG_LEVEL: INFO
+    networks:
+      - async_ai_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ⚙️ Worker服务 (生产配置)
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    restart: always
+    environment:
+      DATABASE_URL: postgresql+asyncpg://taskuser:${POSTGRES_PASSWORD}@postgres:5432/task_runner
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      CELERY_BROKER_URL: redis://:${REDIS_PASSWORD}@redis:6379/1
+      CELERY_RESULT_BACKEND: redis://:${REDIS_PASSWORD}@redis:6379/2
+      SECRET_KEY: ${SECRET_KEY}
+      DEBUG: false
+      ENVIRONMENT: production
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-2}
+      LOG_LEVEL: INFO
+    networks:
+      - async_ai_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # 🌺 Flower监控服务 (生产配置)
+  flower:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: async_ai_flower_prod
+    restart: always
+    environment:
+      CELERY_BROKER_URL: redis://:${REDIS_PASSWORD}@redis:6379/1
+      CELERY_RESULT_BACKEND: redis://:${REDIS_PASSWORD}@redis:6379/2
+      FLOWER_BASIC_AUTH_USER: ${FLOWER_USER}
+      FLOWER_BASIC_AUTH_PASSWORD: ${FLOWER_PASSWORD}
+    networks:
+      - async_ai_network
+    depends_on:
+      - redis
+    command: ["uv", "run", "celery", "-A", "app.worker.app", "flower", "--port=5555", "--basic_auth=${FLOWER_USER}:${FLOWER_PASSWORD}"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5555/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  async_ai_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16
