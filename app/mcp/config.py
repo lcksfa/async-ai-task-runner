@@ -15,7 +15,7 @@ class MCPServerSettings:
     # Server settings
     server_name: str = "async-ai-task-runner"
     server_version: str = "1.0.0"
-    server_description: str = "Async AI Task Runner - MCP server for AI task management"
+    server_description: str = "异步AI任务运行器 - MCP服务器，用于AI任务管理"
 
     # Connection settings
     host: str = "localhost"

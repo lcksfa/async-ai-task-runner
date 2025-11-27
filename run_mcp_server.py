@@ -37,34 +37,34 @@ def print_startup_info():
     """Print server startup information"""
     config = get_mcp_config()
 
-    print("🚀 Async AI Task Runner - MCP Server")
+    print("🚀 异步AI任务运行器 - MCP服务器")
     print("=" * 50)
-    print(f"📋 Server Name: {config['server']['name']}")
-    print(f"🔧 Version: {config['server']['version']}")
-    print(f"📝 Description: {config['server']['description']}")
-    print(f"🌐 Transport: {config['connection']['transport']}")
+    print(f"📋 服务器名称: {config['server']['name']}")
+    print(f"🔧 版本: {config['server']['version']}")
+    print(f"📝 描述: {config['server']['description']}")
+    print(f"🌐 传输协议: {config['connection']['transport']}")
 
     if config['connection']['transport'] == 'http':
-        print(f"🔗 Host: {config['connection']['host']}")
-        print(f"📡 Port: {config['connection']['port']}")
+        print(f"🔗 主机: {config['connection']['host']}")
+        print(f"📡 端口: {config['connection']['port']}")
 
-    print("🛠️  Available Tools:")
-    print("   - create_task: Create new AI processing tasks")
-    print("   - get_task_status: Check task status and details")
-    print("   - list_tasks: List tasks with filtering")
-    print("   - get_task_result: Get results of completed tasks")
+    print("🛠️  可用工具:")
+    print("   - create_task: 创建新的AI处理任务")
+    print("   - get_task_status: 查询任务状态和详情")
+    print("   - list_tasks: 列出任务（支持过滤和分页）")
+    print("   - get_task_result: 获取已完成任务的结果")
 
-    print("📚 Available Resources:")
-    print("   - data://tasks/schema: Task object schema")
-    print("   - data://tasks/statuses: Task status information")
-    print("   - data://models/available: Available AI models")
-    print("   - data://system/stats: System performance statistics")
+    print("📚 可用资源:")
+    print("   - data://tasks/schema: 任务对象结构定义")
+    print("   - data://tasks/statuses: 任务状态信息")
+    print("   - data://models/available: 可用的AI模型")
+    print("   - data://system/stats: 系统性能统计")
 
-    print("💬 Available Prompts:")
-    print("   - task_summary: Generate task execution summary")
-    print("   - system_health: System health and diagnostics")
-    print("   - task_analysis: Deep analysis of task patterns")
-    print("   - performance_review: Performance optimization insights")
+    print("💬 可用提示模板:")
+    print("   - task_summary: 生成任务执行摘要")
+    print("   - system_health: 系统健康诊断")
+    print("   - task_analysis: 任务模式深度分析")
+    print("   - performance_review: 性能优化建议")
 
     print("=" * 50)
     print()
@@ -74,8 +74,8 @@ def print_connection_info():
     """Print connection instructions for Claude Desktop"""
     config = get_mcp_config()
 
-    print("📱 Claude Desktop Configuration:")
-    print("To connect this MCP server to Claude Desktop, add the following to your Claude Desktop config:")
+    print("📱 Claude Desktop 配置:")
+    print("要将此MCP服务器连接到Claude Desktop，请在Claude Desktop配置中添加以下内容：")
     print()
 
     if config['connection']['transport'] == 'stdio':
@@ -104,112 +104,126 @@ def print_connection_info():
         print("```")
 
     print()
-    print("📖 For more information, see:")
-    print("   - MCP Protocol: https://modelcontextprotocol.io/")
-    print("   - Claude Desktop Integration: https://docs.anthropic.com/claude/docs/mcp")
+    print("📖 更多信息请参考：")
+    print("   - MCP协议: https://modelcontextprotocol.io/")
+    print("   - Claude Desktop集成: https://docs.anthropic.com/claude/docs/mcp")
     print()
 
 
-def validate_environment():
+def validate_environment(quiet=False):
     """Validate the runtime environment"""
-    print("🔍 Environment Validation:")
+    if not quiet:
+        print("🔍 环境验证：")
 
     # Check required directories
     required_dirs = ["app", "app/mcp", "app/mcp/tools", "app/mcp/resources", "app/mcp/prompts"]
     for dir_path in required_dirs:
         if Path(dir_path).exists():
-            print(f"   ✅ {dir_path}")
+            if not quiet:
+                print(f"   ✅ {dir_path}")
         else:
-            print(f"   ❌ {dir_path} - Missing directory")
+            if not quiet:
+                print(f"   ❌ {dir_path} - Missing directory")
             return False
 
     # Check required modules
     try:
         from app.database import get_db_session
-        print("   ✅ Database module")
+        if not quiet:
+            print("   ✅ Database module")
     except ImportError as e:
-        print(f"   ❌ Database module: {e}")
+        if not quiet:
+            print(f"   ❌ Database module: {e}")
         return False
 
     try:
         from app.crud import task as task_crud
-        print("   ✅ CRUD module")
+        if not quiet:
+            print("   ✅ CRUD module")
     except ImportError as e:
-        print(f"   ❌ CRUD module: {e}")
+        if not quiet:
+            print(f"   ❌ CRUD module: {e}")
         return False
 
     try:
         from app.schemas import TaskCreate, TaskResponse
-        print("   ✅ Schemas module")
+        if not quiet:
+            print("   ✅ Schemas module")
     except ImportError as e:
-        print(f"   ❌ Schemas module: {e}")
+        if not quiet:
+            print(f"   ❌ Schemas module: {e}")
         return False
 
     # Check MCP dependencies
     try:
         import mcp
-        print("   ✅ MCP library")
+        if not quiet:
+            print("   ✅ MCP library")
     except ImportError as e:
-        print(f"   ❌ MCP library: {e}")
-        print("     Run: uv sync")
+        if not quiet:
+            print(f"   ❌ MCP library: {e}")
+            print("     Run: uv sync")
         return False
 
     # Check environment variables
     if Path(".env").exists():
-        print("   ✅ .env file found")
+        if not quiet:
+            print("   ✅ .env file found")
     else:
-        print("   ⚠️  .env file not found (optional)")
+        if not quiet:
+            print("   ⚠️  .env file not found (optional)")
 
-    print()
+    if not quiet:
+        print()
     return True
 
 
 async def run_stdio_server():
     """Run MCP server with stdio transport"""
-    print("🔄 Starting MCP server with stdio transport...")
-
+    # Note: No print statements in stdio mode - only JSON communication allowed
     try:
         # Use stdio transport for Claude Desktop integration
-        import sys
         from mcp.server.stdio import stdio_server
+        from mcp.server.models import InitializationOptions
+        from mcp.server.lowlevel.server import NotificationOptions
 
-        async def handle_client(stdin, stdout):
+        logger.info("MCP server ready for stdio communication")
+        async with stdio_server() as (read_stream, write_stream):
             await mcp_server.server.run(
-                stdin,
-                stdout,
-                mcp_server.server.InitializationOptions(
+                read_stream,
+                write_stream,
+                InitializationOptions(
                     server_name=mcp_settings.server_name,
                     server_version=mcp_settings.server_version,
                     capabilities=mcp_server.server.get_capabilities(
-                        notification_options=None,
-                        experimental_capabilities=None,
+                        notification_options=NotificationOptions(),
+                        experimental_capabilities={}
                     ),
                 ),
             )
 
-        logger.info("MCP server ready for stdio communication")
-        await stdio_server(handle_client)
-
     except KeyboardInterrupt:
-        print("\n👋 Server stopped by user")
+        # Clean exit - no print in stdio mode
+        import sys
+        sys.exit(0)
     except Exception as e:
         logger.error(f"Server error: {e}")
-        print(f"❌ Server error: {e}")
+        # Only log error, don't print to stdout in stdio mode
+        import sys
         sys.exit(1)
 
 
 async def run_http_server(host: str, port: int):
     """Run MCP server with HTTP transport"""
-    print(f"🌐 Starting MCP server on http://{host}:{port}...")
+    logger.info(f"Starting MCP server on http://{host}:{port}...")
 
     try:
         await mcp_server.run(host=host, port=port)
 
     except KeyboardInterrupt:
-        print("\n👋 Server stopped by user")
+        logger.info("Server stopped by user")
     except Exception as e:
         logger.error(f"Server error: {e}")
-        print(f"❌ Server error: {e}")
         sys.exit(1)
 
 
@@ -278,12 +292,15 @@ Examples:
     # Update logging level if specified
     logging.getLogger().setLevel(getattr(logging, args.log_level))
 
-    # Print startup information
-    print_startup_info()
+    # Only print startup information for HTTP mode (stdio mode requires clean JSON communication)
+    if args.transport != "stdio":
+        print_startup_info()
 
     # Validate environment
-    if not validate_environment():
-        print("❌ Environment validation failed")
+    quiet_mode = args.transport == "stdio"
+    if not validate_environment(quiet=quiet_mode):
+        if not quiet_mode:
+            print("❌ Environment validation failed")
         sys.exit(1)
 
     # Handle special commands
@@ -300,8 +317,8 @@ Examples:
         print_connection_info()
         sys.exit(0)
 
-    # Print connection info by default
-    if args.transport == "stdio":
+    # Only print connection info for non-stdio modes
+    if args.transport != "stdio":
         print_connection_info()
 
     # Create logs directory if needed
@@ -314,10 +331,9 @@ Examples:
         else:
             asyncio.run(run_http_server(args.host, args.port))
     except KeyboardInterrupt:
-        print("\n👋 Goodbye!")
+        logger.info("Server shutdown requested")
     except Exception as e:
         logger.error(f"Startup error: {e}")
-        print(f"❌ Startup error: {e}")
         sys.exit(1)
 
 

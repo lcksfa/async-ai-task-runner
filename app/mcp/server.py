@@ -54,32 +54,32 @@ class AsyncAITaskRunnerMCPServer:
             return [
                 Tool(
                     name="create_task",
-                    description="Create a new AI processing task",
+                    description="创建新的AI处理任务（支持多种模型和优先级）",
                     inputSchema={
                         "type": "object",
                         "properties": {
                             "prompt": {
                                 "type": "string",
-                                "description": "The AI prompt to process",
+                                "description": "要处理的AI提示词内容",
                                 "minLength": 1,
                                 "maxLength": 1000
                             },
                             "model": {
                                 "type": "string",
-                                "description": "AI model to use (default: deepseek-chat)",
+                                "description": "要使用的AI模型（默认：deepseek-chat）",
                                 "default": "deepseek-chat",
                                 "enum": ["deepseek-chat", "gpt-3.5-turbo", "gpt-4"]
                             },
                             "priority": {
                                 "type": "integer",
-                                "description": "Task priority from 1-10",
+                                "description": "任务优先级（1-10，数字越大优先级越高）",
                                 "minimum": 1,
                                 "maximum": 10,
                                 "default": 5
                             },
                             "provider": {
                                 "type": "string",
-                                "description": "AI provider to use",
+                                "description": "AI服务提供商",
                                 "default": "deepseek",
                                 "enum": ["deepseek", "openai", "anthropic"]
                             }
@@ -89,13 +89,13 @@ class AsyncAITaskRunnerMCPServer:
                 ),
                 Tool(
                     name="get_task_status",
-                    description="Get status and details of a specific task",
+                    description="查询指定任务的状态和详细信息",
                     inputSchema={
                         "type": "object",
                         "properties": {
                             "task_id": {
                                 "type": "integer",
-                                "description": "ID of the task to retrieve"
+                                "description": "要查询的任务ID"
                             }
                         },
                         "required": ["task_id"]
@@ -103,25 +103,25 @@ class AsyncAITaskRunnerMCPServer:
                 ),
                 Tool(
                     name="list_tasks",
-                    description="List tasks with optional filtering and pagination",
+                    description="列出任务（支持状态过滤和分页）",
                     inputSchema={
                         "type": "object",
                         "properties": {
                             "status": {
                                 "type": "string",
-                                "description": "Filter by task status",
+                                "description": "按任务状态过滤",
                                 "enum": ["PENDING", "PROCESSING", "COMPLETED", "FAILED"]
                             },
                             "limit": {
                                 "type": "integer",
-                                "description": "Maximum number of tasks to return",
+                                "description": "返回任务的最大数量",
                                 "minimum": 1,
                                 "maximum": 100,
                                 "default": 10
                             },
                             "offset": {
                                 "type": "integer",
-                                "description": "Number of tasks to skip",
+                                "description": "跳过的任务数量",
                                 "minimum": 0,
                                 "default": 0
                             }
@@ -131,13 +131,13 @@ class AsyncAITaskRunnerMCPServer:
                 ),
                 Tool(
                     name="get_task_result",
-                    description="Get the result of a completed task",
+                    description="获取已完成任务的结果",
                     inputSchema={
                         "type": "object",
                         "properties": {
                             "task_id": {
                                 "type": "integer",
-                                "description": "ID of the completed task"
+                                "description": "已完成的任务ID"
                             }
                         },
                         "required": ["task_id"]
@@ -188,20 +188,20 @@ class AsyncAITaskRunnerMCPServer:
             return [
                 Resource(
                     uri="data://tasks/schema",
-                    name="Task Schema",
-                    description="JSON schema for task objects",
+                    name="任务对象Schema",
+                    description="任务对象的JSON Schema定义",
                     mimeType="application/json"
                 ),
                 Resource(
                     uri="data://tasks/statuses",
-                    name="Task Statuses",
-                    description="Available task statuses and their meanings",
+                    name="任务状态定义",
+                    description="可用的任务状态及其含义",
                     mimeType="application/json"
                 ),
                 Resource(
                     uri="data://models/available",
-                    name="Available AI Models",
-                    description="List of supported AI models and providers",
+                    name="可用的AI模型",
+                    description="支持的AI模型和提供商列表",
                     mimeType="application/json"
                 )
             ]
@@ -212,7 +212,7 @@ class AsyncAITaskRunnerMCPServer:
             return [
                 Prompt(
                     name="task_summary",
-                    description="Generate a summary of task execution",
+                    description="生成任务执行摘要",
                     arguments=[
                         {
                             "name": "task_ids",
@@ -223,7 +223,7 @@ class AsyncAITaskRunnerMCPServer:
                 ),
                 Prompt(
                     name="system_health",
-                    description="Generate a system health report",
+                    description="生成系统健康报告",
                     arguments=[]
                 )
             ]

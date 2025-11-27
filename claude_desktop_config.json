@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "my-ai-task-server": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--directory","/Users/lizhao/workspace/python-learn/async-ai-task-runner",
+        "run_mcp_server.py" 
+      ]
+    }
+  }
+}
