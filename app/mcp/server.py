@@ -30,7 +30,7 @@ from mcp.types import (
     Tool,
 )
 
-from app.database import get_db_session
+from app.database import AsyncSessionLocal
 from app.crud import task as task_crud
 from app.schemas import TaskCreate, TaskResponse
 
@@ -151,7 +151,7 @@ class AsyncAITaskRunnerMCPServer:
         ) -> CallToolResult:
             """Handle tool calls"""
             try:
-                async with get_db_session() as db:
+                async with AsyncSessionLocal() as db:
                     if name == "create_task":
                         return await self._handle_create_task(db, arguments or {})
                     elif name == "get_task_status":
@@ -335,7 +335,7 @@ class AsyncAITaskRunnerMCPServer:
             offset = arguments.get("offset", 0)
             status = arguments.get("status")
 
-            tasks = await task_crud.get_tasks(
+            tasks = await task_crud.get_tasks_with_filters(
                 db=db,
                 skip=offset,
                 limit=limit,

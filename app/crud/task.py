@@ -13,6 +13,7 @@ async def create_task(db: AsyncSession, *, obj_in: TaskCreate) -> Task:
     db_obj = Task(
         prompt=obj_in.prompt,
         model=obj_in.model,
+        provider=obj_in.provider,
         priority=obj_in.priority,
         status=TaskStatus.PENDING
     )
