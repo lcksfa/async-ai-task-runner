@@ -69,6 +69,8 @@ services:
       dockerfile: Dockerfile
     container_name: async_ai_web
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
       # 数据库配置
       DATABASE_URL: postgresql+asyncpg://taskuser:taskpass@postgres:5432/task_runner
@@ -84,9 +86,9 @@ services:
       ENVIRONMENT: ${ENVIRONMENT:-development}
 
       # AI服务配置
-      # DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
-      # OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      # ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
 
       # CORS配置
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8000,http://localhost:3000}
@@ -125,6 +127,8 @@ services:
       dockerfile: Dockerfile.worker
     container_name: async_ai_worker
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
       # 数据库配置
       DATABASE_URL: postgresql+asyncpg://taskuser:taskpass@postgres:5432/task_runner
@@ -140,9 +144,9 @@ services:
       ENVIRONMENT: ${ENVIRONMENT:-development}
 
       # AI服务配置
-      # DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
-      # OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      # ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
 
       # Worker配置
       WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-4}

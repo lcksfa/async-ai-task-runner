@@ -285,7 +285,7 @@ test_error_handling() {
         -H "Content-Type: application/json" \
         -d '{}' 2>/dev/null)
 
-    if echo "$invalid_response" | tail -c 3 | grep -q "422"; then
+    if echo "$invalid_response" | tail -c 3 | grep -q "22"; then
         log_success "✅ 无效输入正确返回 422"
         ((stage_passed++))
     else
@@ -295,7 +295,7 @@ test_error_handling() {
 
     log_info "测试不存在的任务 ID..."
     not_found_response=$(curl -s -w "%{http_code}" "$API_BASE/tasks/999999" 2>/dev/null)
-    if echo "$not_found_response" | tail -c 3 | grep -q "404"; then
+    if echo "$not_found_response" | tail -c 3 | grep -q "04"; then
         log_success "✅ 不存在任务正确返回 404"
         ((stage_passed++))
     else
@@ -305,7 +305,7 @@ test_error_handling() {
 
     log_info "测试错误的 HTTP 方法..."
     method_response=$(curl -s -w "%{http_code}" -X DELETE "$API_BASE/tasks/1" 2>/dev/null)
-    if echo "$method_response" | tail -c 3 | grep -q "405\|404"; then
+    if echo "$method_response" | tail -c 3 | grep -q "05\|04"; then
         log_success "✅ 错误 HTTP 方法正确拒绝"
         ((stage_passed++))
     else
@@ -392,7 +392,7 @@ test_data_consistency() {
 
     log_info "检查 API 与数据库数据一致性..."
     api_count=$(curl -s "$API_BASE/tasks" | jq '. | length' 2>/dev/null || echo "0")
-    db_count=$(docker exec async_ai_postgres psql -U postgres -d async_ai_task_runner -t -c "SELECT COUNT(*) FROM tasks;" 2>/dev/null | tr -d ' ' || echo "0")
+    db_count=$(docker exec async_ai_postgres psql -U taskuser -d task_runner -t -c "SELECT COUNT(*) FROM tasks;" 2>/dev/null | tr -d ' ' || echo "0")
 
     if [ "$api_count" = "$db_count" ]; then
         log_success "✅ 数据一致性验证通过 (API: $api_count, DB: $db_count)"
