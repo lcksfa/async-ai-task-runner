@@ -42,7 +42,7 @@ class OpenAIProvider(AIProvider):
                 "max_tokens": max_tokens
             }
 
-            response = requests.post(url, headers=self.headers, json=data, timeout=30)
+            response = requests.post(url, headers=self.headers, json=data, timeout=60)
             response.raise_for_status()
 
             result = response.json()
@@ -76,7 +76,7 @@ class DeepSeekProvider(AIProvider):
                 "stream": False
             }
 
-            response = requests.post(url, headers=self.headers, json=data, timeout=30)
+            response = requests.post(url, headers=self.headers, json=data, timeout=60)
             response.raise_for_status()
 
             result = response.json()
@@ -110,7 +110,7 @@ class AnthropicProvider(AIProvider):
                 "messages": [{"role": "user", "content": prompt}]
             }
 
-            response = requests.post(url, headers=self.headers, json=data, timeout=30)
+            response = requests.post(url, headers=self.headers, json=data, timeout=60)
             response.raise_for_status()
 
             result = response.json()
