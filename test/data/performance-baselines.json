@@ -1,0 +1,331 @@
+{
+  "api_response_times": {
+    "health_check": {
+      "target_ms": 50,
+      "warning_ms": 100,
+      "critical_ms": 200,
+      "description": "健康检查接口响应时间"
+    },
+    "task_creation": {
+      "target_ms": 200,
+      "warning_ms": 500,
+      "critical_ms": 1000,
+      "description": "任务创建接口响应时间"
+    },
+    "task_query": {
+      "target_ms": 300,
+      "warning_ms": 800,
+      "critical_ms": 1500,
+      "description": "任务查询接口响应时间"
+    },
+    "task_list": {
+      "target_ms": 500,
+      "warning_ms": 1200,
+      "critical_ms": 2500,
+      "description": "任务列表接口响应时间"
+    }
+  },
+  "load_test_benchmarks": {
+    "light_load": {
+      "concurrent_requests": 10,
+      "duration_seconds": 60,
+      "success_rate_threshold": 0.95,
+      "avg_response_time_threshold_ms": 800,
+      "max_response_time_threshold_ms": 2000,
+      "throughput_rps_threshold": 8,
+      "description": "轻负载测试 - 10个并发请求"
+    },
+    "medium_load": {
+      "concurrent_requests": 50,
+      "duration_seconds": 120,
+      "success_rate_threshold": 0.90,
+      "avg_response_time_threshold_ms": 1500,
+      "max_response_time_threshold_ms": 3000,
+      "throughput_rps_threshold": 25,
+      "description": "中等负载测试 - 50个并发请求"
+    },
+    "heavy_load": {
+      "concurrent_requests": 100,
+      "duration_seconds": 300,
+      "success_rate_threshold": 0.85,
+      "avg_response_time_threshold_ms": 2500,
+      "max_response_time_threshold_ms": 5000,
+      "throughput_rps_threshold": 40,
+      "description": "重负载测试 - 100个并发请求"
+    }
+  },
+  "resource_usage_limits": {
+    "memory": {
+      "warning_percent": 70,
+      "critical_percent": 85,
+      "max_allowed_mb": 512,
+      "description": "内存使用率限制"
+    },
+    "cpu": {
+      "warning_percent": 60,
+      "critical_percent": 80,
+      "max_allowed_cores": 2,
+      "description": "CPU使用率限制"
+    },
+    "disk_io": {
+      "warning_mb_per_sec": 10,
+      "critical_mb_per_sec": 25,
+      "max_allowed_mb": 100,
+      "description": "磁盘I/O限制"
+    },
+    "network_io": {
+      "warning_mb_per_sec": 5,
+      "critical_mb_per_sec": 15,
+      "max_allowed_mb": 50,
+      "description": "网络I/O限制"
+    }
+  },
+  "celery_performance": {
+    "worker_performance": {
+      "max_concurrent_tasks_per_worker": 10,
+      "task_processing_time_target_ms": 5000,
+      "task_queue_depth_warning": 50,
+      "task_queue_depth_critical": 100,
+      "worker_memory_limit_mb": 256,
+      "description": "Celery Worker性能指标"
+    },
+    "task_distribution": {
+      "priority_queue_processing_ratio": 0.8,
+      "max_task_wait_time_seconds": 300,
+      "task_retry_limit": 3,
+      "task_timeout_seconds": 600,
+      "description": "任务分发和处理指标"
+    }
+  },
+  "database_performance": {
+    "postgresql": {
+      "connection_pool_warning_size": 15,
+      "connection_pool_critical_size": 25,
+      "query_time_warning_ms": 200,
+      "query_time_critical_ms": 1000,
+      "max_connections": 100,
+      "description": "PostgreSQL数据库性能指标"
+    },
+    "redis": {
+      "memory_usage_warning_percent": 75,
+      "memory_usage_critical_percent": 90,
+      "connection_count_warning": 80,
+      "connection_count_critical": 150,
+      "max_memory_mb": 256,
+      "description": "Redis缓存性能指标"
+    }
+  },
+  "throughput_targets": {
+    "requests_per_second": {
+      "minimum": 10,
+      "target": 50,
+      "maximum": 100,
+      "description": "系统每秒处理请求数"
+    },
+    "tasks_per_minute": {
+      "minimum": 100,
+      "target": 300,
+      "maximum": 600,
+      "description": "系统每分钟处理任务数"
+    },
+    "concurrent_users": {
+      "minimum": 10,
+      "target": 50,
+      "maximum": 100,
+      "description": "系统支持的并发用户数"
+    }
+  },
+  "availability_targets": {
+    "uptime_percentage": {
+      "target": 99.9,
+      "minimum": 99.0,
+      "description": "系统可用性百分比"
+    },
+    "mean_time_between_failures": {
+      "target_hours": 720,
+      "minimum_hours": 168,
+      "description": "平均故障间隔时间"
+    },
+    "mean_time_to_recovery": {
+      "target_minutes": 5,
+      "maximum_minutes": 30,
+      "description": "平均故障恢复时间"
+    }
+  },
+  "error_rate_targets": {
+    "http_4xx_rate": {
+      "target_percent": 1.0,
+      "maximum_percent": 5.0,
+      "description": "HTTP 4xx错误率"
+    },
+    "http_5xx_rate": {
+      "target_percent": 0.1,
+      "maximum_percent": 1.0,
+      "description": "HTTP 5xx错误率"
+    },
+    "task_failure_rate": {
+      "target_percent": 2.0,
+      "maximum_percent": 10.0,
+      "description": "任务处理失败率"
+    },
+    "database_error_rate": {
+      "target_percent": 0.5,
+      "maximum_percent": 2.0,
+      "description": "数据库错误率"
+    }
+  },
+  "response_time_distribution": {
+    "percentiles": {
+      "p50": {
+        "target_ms": 100,
+        "warning_ms": 200,
+        "description": "50%请求响应时间"
+      },
+      "p90": {
+        "target_ms": 300,
+        "warning_ms": 600,
+        "description": "90%请求响应时间"
+      },
+      "p95": {
+        "target_ms": 500,
+        "warning_ms": 1000,
+        "description": "95%请求响应时间"
+      },
+      "p99": {
+        "target_ms": 1000,
+        "warning_ms": 2000,
+        "description": "99%请求响应时间"
+      }
+    }
+  },
+  "scaling_targets": {
+    "horizontal_scaling": {
+      "min_workers": 1,
+      "target_workers": 4,
+      "max_workers": 8,
+      "auto_scale_threshold_cpu": 70,
+      "auto_scale_threshold_memory": 80,
+      "description": "水平扩展指标"
+    },
+    "vertical_scaling": {
+      "min_cpu_cores": 1,
+      "target_cpu_cores": 2,
+      "max_cpu_cores": 4,
+      "min_memory_gb": 1,
+      "target_memory_gb": 2,
+      "max_memory_gb": 8,
+      "description": "垂直扩展指标"
+    }
+  },
+  "monitoring_alerts": {
+    "critical_alerts": [
+      {
+        "metric": "system_down",
+        "threshold": 0,
+        "description": "系统完全不可用"
+      },
+      {
+        "metric": "error_rate_5xx",
+        "threshold": 5.0,
+        "description": "HTTP 5xx错误率过高"
+      },
+      {
+        "metric": "response_time_p99",
+        "threshold": 3000,
+        "description": "99%请求响应时间过长"
+      },
+      {
+        "metric": "memory_usage",
+        "threshold": 90,
+        "description": "内存使用率过高"
+      }
+    ],
+    "warning_alerts": [
+      {
+        "metric": "error_rate_4xx",
+        "threshold": 3.0,
+        "description": "HTTP 4xx错误率偏高"
+      },
+      {
+        "metric": "response_time_p95",
+        "threshold": 1500,
+        "description": "95%请求响应时间偏高"
+      },
+      {
+        "metric": "cpu_usage",
+        "threshold": 80,
+        "description": "CPU使用率偏高"
+      },
+      {
+        "metric": "task_queue_depth",
+        "threshold": 80,
+        "description": "任务队列积压过多"
+      }
+    ]
+  },
+  "performance_regression_thresholds": {
+    "response_time_regression": {
+      "allowed_increase_percent": 20,
+      "sample_size": 100,
+      "confidence_level": 0.95,
+      "description": "响应时间回归检测阈值"
+    },
+    "throughput_regression": {
+      "allowed_decrease_percent": 15,
+      "sample_size": 100,
+      "confidence_level": 0.95,
+      "description": "吞吐量回归检测阈值"
+    },
+    "error_rate_regression": {
+      "allowed_increase_percent": 50,
+      "sample_size": 100,
+      "confidence_level": 0.95,
+      "description": "错误率回归检测阈值"
+    }
+  },
+  "test_environment_specifications": {
+    "hardware": {
+      "cpu_cores": 2,
+      "memory_gb": 4,
+      "storage_type": "SSD",
+      "network_speed_mbps": 100,
+      "description": "测试环境硬件规格"
+    },
+    "software": {
+      "operating_system": "Linux/macOS",
+      "docker_version": "20.10+",
+      "python_version": "3.8+",
+      "postgresql_version": "16",
+      "redis_version": "7",
+      "description": "测试环境软件版本"
+    },
+    "network": {
+      "bandwidth_mbps": 100,
+      "latency_ms": 10,
+      "packet_loss_percent": 0.1,
+      "description": "测试环境网络条件"
+    }
+  },
+  "performance_tuning_guidelines": {
+    "database_optimization": {
+      "connection_pool_size": 20,
+      "query_cache_size": "64MB",
+      "work_mem": "4MB",
+      "maintenance_work_mem": "256MB",
+      "description": "数据库性能优化建议"
+    },
+    "redis_optimization": {
+      "max_memory_policy": "allkeys-lru",
+      "save_intervals": ["900 1", "300 10", "60 10000"],
+      "timeout_seconds": 300,
+      "description": "Redis性能优化建议"
+    },
+    "application_optimization": {
+      "async_worker_concurrency": 4,
+      "request_timeout_seconds": 30,
+      "max_connections": 1000,
+      "keep_alive_timeout": 65,
+      "description": "应用性能优化建议"
+    }
+  }
+}

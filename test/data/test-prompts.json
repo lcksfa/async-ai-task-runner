@@ -1,0 +1,236 @@
+{
+  "simple_prompts": [
+    "请用一句话介绍人工智能",
+    "计算 1 + 1 等于几？",
+    "解释什么是异步编程",
+    "什么是微服务架构？",
+    "简述Docker容器的优势"
+  ],
+  "math_prompts": [
+    "计算 15 × 23",
+    "求解方程 x² - 4x + 3 = 0",
+    "计算斐波那契数列第10项",
+    "圆的面积公式是什么？半径为5的圆面积是多少？",
+    "什么是质数？找出20以内的所有质数"
+  ],
+  "code_prompts": [
+    "用Python写一个计算阶乘的函数",
+    "解释什么是RESTful API",
+    "写一个简单的HTTP GET请求示例",
+    "什么是数据库事务？举个例子",
+    "解释Python中的装饰器概念"
+  ],
+  "system_prompts": [
+    "Redis在Web应用中的作用是什么？",
+    "Celery和RabbitMQ的区别是什么？",
+    "解释什么是消息队列(Message Queue)",
+    "PostgreSQL和MySQL的主要区别",
+    "什么是CI/CD？请举例说明"
+  ],
+  "error_prompts": [
+    "这是一个可能导致错误的请求：",
+    "空内容测试：",
+    "格式错误测试：{invalid json}",
+    "超长内容测试：" + "x".repeat(1000),
+    "特殊字符测试：!@#$%^&*()_+-={}[]|\\:\";'<>?,./"
+  ],
+  "load_test_prompts": [
+    "负载测试任务 1：解释CPU和内存的区别",
+    "负载测试任务 2：什么是操作系统？",
+    "负载测试任务 3：解释网络的OSI七层模型",
+    "负载测试任务 4：什么是数据库索引？",
+    "负载测试任务 5：解释Git版本控制的基本概念",
+    "负载测试任务 6：什么是敏捷开发？",
+    "负载测试任务 7：解释什么是API网关",
+    "负载测试任务 8：什么是微服务架构的优势？",
+    "负载测试任务 9：解释什么是容器编排",
+    "负载测试任务 10：什么是DevOps？"
+  ],
+  "concurrent_test_prompts": [
+    {
+      "id": 1,
+      "prompt": "并发测试 1：计算当前时间戳",
+      "priority": 1
+    },
+    {
+      "id": 2,
+      "prompt": "并发测试 2：列出Python的内置数据类型",
+      "priority": 2
+    },
+    {
+      "id": 3,
+      "prompt": "并发测试 3：解释HTTP和HTTPS的区别",
+      "priority": 1
+    },
+    {
+      "id": 4,
+      "prompt": "并发测试 4：什么是JWT令牌？",
+      "priority": 3
+    },
+    {
+      "id": 5,
+      "prompt": "并发测试 5：解释什么是负载均衡",
+      "priority": 2
+    },
+    {
+      "id": 6,
+      "prompt": "并发测试 6：什么是SQL注入？如何防范？",
+      "priority": 1
+    },
+    {
+      "id": 7,
+      "prompt": "并发测试 7：解释什么是跨域请求(CORS)",
+      "priority": 2
+    },
+    {
+      "id": 8,
+      "prompt": "并发测试 8：什么是缓存击穿？",
+      "priority": 3
+    },
+    {
+      "id": 9,
+      "prompt": "并发测试 9：解释什么是分布式锁",
+      "priority": 1
+    },
+    {
+      "id": 10,
+      "prompt": "并发测试 10：什么是服务降级？",
+      "priority": 2
+    }
+  ],
+  "boundary_test_prompts": [
+    {
+      "type": "empty",
+      "prompt": "",
+      "expected_result": "validation_error"
+    },
+    {
+      "type": "whitespace_only",
+      "prompt": "   \n\t   ",
+      "expected_result": "validation_error"
+    },
+    {
+      "type": "single_char",
+      "prompt": "a",
+      "expected_result": "success"
+    },
+    {
+      "type": "very_long",
+      "prompt": "x".repeat(10000),
+      "expected_result": "success_or_error"
+    },
+    {
+      "type": "unicode",
+      "prompt": "测试中文🚀emoji和各种符号!@#$%^&*()",
+      "expected_result": "success"
+    },
+    {
+      "type": "special_characters",
+      "prompt": "!@#$%^&*()_+-=[]{}|;':\",./<>?",
+      "expected_result": "success"
+    },
+    {
+      "type": "html_tags",
+      "prompt": "<script>alert('test')</script><div>content</div>",
+      "expected_result": "success"
+    },
+    {
+      "type": "sql_injection_attempt",
+      "prompt": "'; DROP TABLE tasks; --",
+      "expected_result": "success_or_sanitized"
+    }
+  ],
+  "performance_test_data": {
+    "small_tasks": [
+      {
+        "prompt": "A",
+        "model": "deepseek-chat",
+        "priority": 1
+      },
+      {
+        "prompt": "Hi",
+        "model": "deepseek-chat",
+        "priority": 1
+      }
+    ],
+    "medium_tasks": [
+      {
+        "prompt": "请解释什么是异步编程模式",
+        "model": "deepseek-chat",
+        "priority": 5
+      },
+      {
+        "prompt": "对比一下同步和异步处理的优缺点",
+        "model": "deepseek-chat",
+        "priority": 5
+      }
+    ],
+    "large_tasks": [
+      {
+        "prompt": "请详细介绍微服务架构的设计原则、优势、挑战以及最佳实践，包括服务发现、配置管理、熔断机制、限流降级等关键技术点",
+        "model": "deepseek-chat",
+        "priority": 10
+      },
+      {
+        "prompt": "深入分析分布式系统的CAP定理、BASE理论，以及在设计高可用、高并发系统时需要考虑的架构模式和工程实践",
+        "model": "deepseek-chat",
+        "priority": 10
+      }
+    ]
+  },
+  "stress_test_scenarios": [
+    {
+      "name": "大量小任务并发",
+      "description": "测试系统处理大量小任务的能力",
+      "task_count": 100,
+      "concurrent_limit": 50,
+      "prompt_template": "小任务 {id}: 计算 {id} + {id}"
+    },
+    {
+      "name": "中等规模混合任务",
+      "description": "测试系统处理混合规模任务的能力",
+      "task_count": 50,
+      "concurrent_limit": 25,
+      "prompt_template": "混合任务 {id}: 解释概念 {id}"
+    },
+    {
+      "name": "高优先级任务压力测试",
+      "description": "测试系统在高优先级任务压力下的表现",
+      "task_count": 30,
+      "concurrent_limit": 15,
+      "priority": 10,
+      "prompt_template": "紧急任务 {id}: 需要立即处理的问题 {id}"
+    }
+  ],
+  "validation_patterns": {
+    "valid_responses": [
+      {
+        "type": "numeric_answer",
+        "pattern": "^\\d+$",
+        "example_prompts": ["计算 1+1", "15×23等于多少"]
+      },
+      {
+        "type": "concept_explanation",
+        "pattern": "是.*",
+        "example_prompts": ["什么是人工智能", "解释什么是异步编程"]
+      },
+      {
+        "type": "code_snippet",
+        "pattern": "def |class |import |# ",
+        "example_prompts": ["写一个Python函数", "解释装饰器"]
+      }
+    ],
+    "error_responses": [
+      {
+        "type": "empty_response",
+        "pattern": "^$",
+        "should_fail": true
+      },
+      {
+        "type": "error_message",
+        "pattern": "(error|failed|exception)",
+        "should_fail": true
+      }
+    ]
+  }
+}

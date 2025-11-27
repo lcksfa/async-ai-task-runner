@@ -1,0 +1,208 @@
+{
+  "simple_tasks": [
+    {
+      "id": 1,
+      "prompt": "请用一句话介绍人工智能",
+      "model": "deepseek-chat",
+      "priority": 1,
+      "expected_status": "COMPLETED"
+    },
+    {
+      "id": 2,
+      "prompt": "计算 1 + 1 等于几？",
+      "model": "deepseek-chat",
+      "priority": 3,
+      "expected_status": "COMPLETED"
+    },
+    {
+      "id": 3,
+      "prompt": "解释什么是异步编程",
+      "model": "deepseek-chat",
+      "priority": 2,
+      "expected_status": "COMPLETED"
+    }
+  ],
+  "priority_tasks": [
+    {
+      "id": 10,
+      "prompt": "紧急：数据库连接出现问题，请帮助诊断",
+      "model": "deepseek-chat",
+      "priority": 10,
+      "expected_status": "COMPLETED"
+    },
+    {
+      "id": 11,
+      "prompt": "高优先级：系统性能优化建议",
+      "model": "deepseek-chat",
+      "priority": 9,
+      "expected_status": "COMPLETED"
+    },
+    {
+      "id": 12,
+      "prompt": "普通：日常系统巡检报告",
+      "model": "deepseek-chat",
+      "priority": 5,
+      "expected_status": "COMPLETED"
+    },
+    {
+      "id": 13,
+      "prompt": "低优先级：系统配置文档更新",
+      "model": "deepseek-chat",
+      "priority": 1,
+      "expected_status": "COMPLETED"
+    }
+  ],
+  "batch_tasks": [
+    {
+      "id": 20,
+      "prompt": "批量测试任务 1：解释 Redis 的作用",
+      "model": "deepseek-chat",
+      "priority": 1,
+      "expected_status": "COMPLETED"
+    },
+    {
+      "id": 21,
+      "prompt": "批量测试任务 2：解释 Celery 的工作原理",
+      "model": "deepseek-chat",
+      "priority": 2,
+      "expected_status": "COMPLETED"
+    },
+    {
+      "id": 22,
+      "prompt": "批量测试任务 3：说明 Docker 容器化的优势",
+      "model": "deepseek-chat",
+      "priority": 1,
+      "expected_status": "COMPLETED"
+    },
+    {
+      "id": 23,
+      "prompt": "批量测试任务 4：对比 FastAPI 和 Flask",
+      "model": "deepseek-chat",
+      "priority": 3,
+      "expected_status": "COMPLETED"
+    },
+    {
+      "id": 24,
+      "prompt": "批量测试任务 5：解释消息队列的概念",
+      "model": "deepseek-chat",
+      "priority": 2,
+      "expected_status": "COMPLETED"
+    }
+  ],
+  "error_test_tasks": [
+    {
+      "description": "空请求体测试",
+      "payload": {},
+      "expected_status_code": 422,
+      "expected_error": "validation error"
+    },
+    {
+      "description": "缺少必需字段测试",
+      "payload": {
+        "prompt": "测试任务"
+      },
+      "expected_status_code": 422,
+      "expected_error": "field required"
+    },
+    {
+      "description": "无效数据类型测试",
+      "payload": {
+        "prompt": "测试任务",
+        "model": "deepseek-chat",
+        "priority": "high"
+      },
+      "expected_status_code": 422,
+      "expected_error": "type_error"
+    },
+    {
+      "description": "超长输入测试",
+      "payload": {
+        "prompt": "这是一个非常长的提示" + "a".repeat(10000),
+        "model": "deepseek-chat",
+        "priority": 1
+      },
+      "expected_status_code": 422,
+      "expected_error": "string_too_long"
+    }
+  ],
+  "performance_baselines": {
+    "response_time_targets": {
+      "health_check": 50,
+      "task_creation": 200,
+      "task_query": 300
+    },
+    "load_test_targets": {
+      "light_load": {
+        "concurrent_requests": 10,
+        "success_rate": 0.95,
+        "max_response_time": 1000
+      },
+      "medium_load": {
+        "concurrent_requests": 50,
+        "success_rate": 0.90,
+        "max_response_time": 2000
+      }
+    },
+    "resource_limits": {
+      "max_memory_usage": 80,
+      "max_cpu_usage": 70,
+      "max_disk_io": 85
+    }
+  },
+  "test_scenarios": {
+    "happy_paths": [
+      {
+        "name": "创建并完成单个任务",
+        "steps": [
+          "创建任务",
+          "验证返回任务ID",
+          "轮询任务状态直到完成",
+          "验证任务结果"
+        ]
+      },
+      {
+        "name": "批量任务创建",
+        "steps": [
+          "并发创建多个任务",
+          "验证所有任务都有唯一ID",
+          "监控任务执行状态",
+          "验证最终任务完成率"
+        ]
+      },
+      {
+        "name": "按优先级过滤任务",
+        "steps": [
+          "创建不同优先级的任务",
+          "查询高优先级任务",
+          "查询低优先级任务",
+          "验证过滤结果正确"
+        ]
+      }
+    ],
+    "edge_cases": [
+      {
+        "name": "查询不存在的任务",
+        "steps": [
+          "查询ID为999999的任务",
+          "验证返回404错误",
+          "验证错误信息格式"
+        ]
+      },
+      {
+        "name": "使用无效的任务ID格式",
+        "steps": [
+          "查询ID为'abc'的任务",
+          "验证返回适当的错误响应"
+        ]
+      },
+      {
+        "name": "并发创建相同内容任务",
+        "steps": [
+          "同时创建多个相同内容的任务",
+          "验证每个任务都有唯一的ID",
+          "验证任务内容正确保存"
+        ]
+      }
+    ]
+  }
+}
