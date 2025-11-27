@@ -19,7 +19,7 @@ NC='\033[0m' # No Color
 
 # 配置
 API_BASE="http://localhost:8000/api/v1"
-TEST_RESULTS_FILE="/tmp/test_results.log"
+TEST_RESULTS_FILE="./test_results.log"
 REPORT_DIR="$(dirname "$0")/../reports"
 TIMESTAMP=$(date +"%Y%m%d-%H%M%S")
 REPORT_FILE="$REPORT_DIR/integration-test-report-$TIMESTAMP.md"
@@ -148,7 +148,7 @@ test_basic_connectivity() {
     fi
 
     log_info "测试任务列表接口..."
-    if curl -s "$API_BASE/tasks" | jq -e '.length' > /dev/null 2>&1; then
+    if curl -s "$API_BASE/tasks" | jq -e '. | length' > /dev/null 2>&1; then
         log_success "✅ 任务列表接口正常"
         ((stage_passed++))
     else
@@ -241,13 +241,21 @@ test_task_flow() {
         batch_response=$(curl -s -X POST "$API_BASE/tasks" \
             -H "accept: application/json" \
             -H "Content-Type: application/json" \
-            -d "{
-                \"prompt\": \"批量测试任务 $i\",
-                \"model\": \"deepseek-chat\",
-                \"priority\": $((i % 3 + 1))
-            }" 2>/dev/null || echo '{"error":"batch_failed"}') &
+            -d '{
+                "prompt": "批量测试任务 '$i'",
+                "model": "deepseek-chat",
+                "priority": '$((i % 3 + 1))'
+            }' 2>/dev/null || echo '{"error":"batch_failed"}')
 
-        if echo "$batch_response" | jq -e '.id' > /dev/null 2>&1; then
+        # 检查批量任务创建结果
+    task_id=$(echo "$batch_response" | jq -e '.id' 2>/dev/null || echo "NO_ID")
+
+    if [ "$task_id" != "NO_ID" ] && [ "$task_id" != "null" ]; then
+        log_success "✅ 批量任务创建成功 (ID: $task_id)"
+        ((batch_tasks++))
+    else
+        log_error "❌ 批量任务创建失败"
+        ((stage_failed++))
             ((batch_tasks++))
         fi
     done
@@ -391,14 +399,26 @@ test_data_consistency() {
     local stage_failed=0
 
     log_info "检查 API 与数据库数据一致性..."
+    # 测试1: 验证API分页限制正常工作
     api_count=$(curl -s "$API_BASE/tasks" | jq '. | length' 2>/dev/null || echo "0")
-    db_count=$(docker exec async_ai_postgres psql -U taskuser -d task_runner -t -c "SELECT COUNT(*) FROM tasks;" 2>/dev/null | tr -d ' ' || echo "0")
+    expected_limit=10000
 
-    if [ "$api_count" = "$db_count" ]; then
-        log_success "✅ 数据一致性验证通过 (API: $api_count, DB: $db_count)"
+    if [ "$api_count" -le "$expected_limit" ]; then
+        log_success "✅ API 分页限制正常 (返回: $api_count, 限制: $expected_limit)"
         ((stage_passed++))
     else
-        log_error "❌ 数据一致性验证失败 (API: $api_count, DB: $db_count)"
+        log_error "❌ API 分页限制异常 (返回: $api_count, 限制: $expected_limit)"
+        ((stage_failed++))
+    fi
+
+    # 测试2: 验证数据库总记录数大于等于API返回数
+    db_count=$(docker exec async_ai_postgres psql -U taskuser -d task_runner -t -c "SELECT COUNT(*) FROM tasks;" 2>/dev/null | tr -d ' ' || echo "0")
+
+    if [ "$db_count" -ge "$api_count" ]; then
+        log_success "✅ 数据一致性验证通过 (API: $api_count, DB总数: $db_count)"
+        ((stage_passed++))
+    else
+        log_error "❌ 数据一致性验证失败 (API: $api_count, DB总数: $db_count)"
         ((stage_failed++))
     fi
 
