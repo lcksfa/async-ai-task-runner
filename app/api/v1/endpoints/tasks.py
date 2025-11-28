@@ -45,7 +45,8 @@ async def create_task(
             print(f"⚠️ Failed to trigger Celery task: {celery_error}")
             # Continue without Celery - task will remain in PENDING state
 
-        return task
+        # Return properly validated Pydantic response model
+        return TaskResponse.model_validate(task)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -67,7 +68,8 @@ async def get_tasks(
     """
     try:
         tasks = await task_crud.get_tasks(db=db, skip=skip, limit=limit)
-        return tasks
+        # Convert SQLAlchemy models to Pydantic response models
+        return [TaskResponse.model_validate(task) for task in tasks]
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -89,4 +91,5 @@ async def get_task(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Task with ID {task_id} not found"
         )
-    return task
+    # Convert SQLAlchemy model to Pydantic response model
+    return TaskResponse.model_validate(task)
