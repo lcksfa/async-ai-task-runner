@@ -2,6 +2,7 @@
 AI相关的Celery任务
 处理实际的AI文本生成、图像处理等耗时操作
 """
+import asyncio
 import time
 from datetime import datetime
 from app.worker.app import celery_app
@@ -43,11 +44,21 @@ def run_ai_text_generation(self, task_id: str, prompt: str, model: str = None,
 
         # 使用真实AI服务生成文本
         try:
-            result = ai_service.generate_text(
-                prompt=prompt,
-                provider_name=provider,
-                model=model
-            )
+            # 在Celery任务中运行异步AI服务调用
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                result = loop.run_until_complete(
+                    ai_service.generate_text(
+                        prompt=prompt,
+                        provider_name=provider,
+                        model=model
+                    )
+                )
+            finally:
+                loop.close()
+        except Exception as async_error:
+            raise Exception(f"异步AI服务调用失败: {str(async_error)}")
 
             processing_time = time.time() - start_time
             print(f"⏱️ AI处理时间: {processing_time:.2f}秒")
