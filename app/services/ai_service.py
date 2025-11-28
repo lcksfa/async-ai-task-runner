@@ -5,7 +5,7 @@ AI服务模块
 """
 from typing import Dict, Any, Optional
 from abc import ABC, abstractmethod
-import requests
+import httpx
 import json
 from app.core.config import settings
 
@@ -14,7 +14,7 @@ class AIProvider(ABC):
     """AI提供商抽象基类"""
 
     @abstractmethod
-    def generate_text(self, prompt: str, **kwargs) -> str:
+    async def generate_text(self, prompt: str, **kwargs) -> str:
         """生成文本的抽象方法"""
         pass
 
@@ -22,16 +22,16 @@ class AIProvider(ABC):
 class OpenAIProvider(AIProvider):
     """OpenAI API提供商"""
 
-    def __init__(self, api_key: str, base_url: str = "https://api.openai.com/v1"):
-        self.api_key = api_key
-        self.base_url = base_url
-        self.headers = {
+    def __init__(self, api_key: str, base_url: str = "https://api.openai.com/v1") -> None:
+        self.api_key: str = api_key
+        self.base_url: str = base_url
+        self.headers: Dict[str, str] = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json"
         }
 
-    def generate_text(self, prompt: str, model: str = "gpt-3.5-turbo",
-                     temperature: float = 0.7, max_tokens: int = 1000, **kwargs) -> str:
+    async def generate_text(self, prompt: str, model: str = "gpt-3.5-turbo",
+                           temperature: float = 0.7, max_tokens: int = 1000, **kwargs) -> str:
         """调用OpenAI API生成文本"""
         try:
             url = f"{self.base_url}/chat/completions"
@@ -42,12 +42,15 @@ class OpenAIProvider(AIProvider):
                 "max_tokens": max_tokens
             }
 
-            response = requests.post(url, headers=self.headers, json=data, timeout=60)
-            response.raise_for_status()
+            async with httpx.AsyncClient(timeout=httpx.Timeout(60.0)) as client:
+                response = await client.post(url, headers=self.headers, json=data)
+                response.raise_for_status()
 
             result = response.json()
             return result["choices"][0]["message"]["content"]
 
+        except httpx.HTTPError as e:
+            raise Exception(f"OpenAI API HTTP错误: {str(e)}")
         except Exception as e:
             raise Exception(f"OpenAI API调用失败: {str(e)}")
 
@@ -55,16 +58,16 @@ class OpenAIProvider(AIProvider):
 class DeepSeekProvider(AIProvider):
     """DeepSeek API提供商"""
 
-    def __init__(self, api_key: str, base_url: str = "https://api.deepseek.com"):
-        self.api_key = api_key
-        self.base_url = base_url
-        self.headers = {
+    def __init__(self, api_key: str, base_url: str = "https://api.deepseek.com") -> None:
+        self.api_key: str = api_key
+        self.base_url: str = base_url
+        self.headers: Dict[str, str] = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json"
         }
 
-    def generate_text(self, prompt: str, model: str = "deepseek-chat",
-                     temperature: float = 0.7, max_tokens: int = 1000, **kwargs) -> str:
+    async def generate_text(self, prompt: str, model: str = "deepseek-chat",
+                           temperature: float = 0.7, max_tokens: int = 1000, **kwargs) -> str:
         """调用DeepSeek API生成文本"""
         try:
             url = f"{self.base_url}/v1/chat/completions"
@@ -76,12 +79,15 @@ class DeepSeekProvider(AIProvider):
                 "stream": False
             }
 
-            response = requests.post(url, headers=self.headers, json=data, timeout=60)
-            response.raise_for_status()
+            async with httpx.AsyncClient(timeout=httpx.Timeout(60.0)) as client:
+                response = await client.post(url, headers=self.headers, json=data)
+                response.raise_for_status()
 
             result = response.json()
             return result["choices"][0]["message"]["content"]
 
+        except httpx.HTTPError as e:
+            raise Exception(f"DeepSeek API HTTP错误: {str(e)}")
         except Exception as e:
             raise Exception(f"DeepSeek API调用失败: {str(e)}")
 
@@ -89,17 +95,17 @@ class DeepSeekProvider(AIProvider):
 class AnthropicProvider(AIProvider):
     """Anthropic Claude API提供商"""
 
-    def __init__(self, api_key: str, base_url: str = "https://api.anthropic.com"):
-        self.api_key = api_key
-        self.base_url = base_url
-        self.headers = {
+    def __init__(self, api_key: str, base_url: str = "https://api.anthropic.com") -> None:
+        self.api_key: str = api_key
+        self.base_url: str = base_url
+        self.headers: Dict[str, str] = {
             "x-api-key": api_key,
             "Content-Type": "application/json",
             "anthropic-version": "2023-06-01"
         }
 
-    def generate_text(self, prompt: str, model: str = "claude-3-sonnet-20240229",
-                     temperature: float = 0.7, max_tokens: int = 1000, **kwargs) -> str:
+    async def generate_text(self, prompt: str, model: str = "claude-3-sonnet-20240229",
+                           temperature: float = 0.7, max_tokens: int = 1000, **kwargs) -> str:
         """调用Anthropic Claude API生成文本"""
         try:
             url = f"{self.base_url}/v1/messages"
@@ -110,12 +116,15 @@ class AnthropicProvider(AIProvider):
                 "messages": [{"role": "user", "content": prompt}]
             }
 
-            response = requests.post(url, headers=self.headers, json=data, timeout=60)
-            response.raise_for_status()
+            async with httpx.AsyncClient(timeout=httpx.Timeout(60.0)) as client:
+                response = await client.post(url, headers=self.headers, json=data)
+                response.raise_for_status()
 
             result = response.json()
             return result["content"][0]["text"]
 
+        except httpx.HTTPError as e:
+            raise Exception(f"Anthropic API HTTP错误: {str(e)}")
         except Exception as e:
             raise Exception(f"Anthropic API调用失败: {str(e)}")
 
@@ -123,11 +132,11 @@ class AnthropicProvider(AIProvider):
 class AIService:
     """AI服务管理器"""
 
-    def __init__(self):
-        self.providers = {}
+    def __init__(self) -> None:
+        self.providers: Dict[str, AIProvider] = {}
         self._initialize_providers()
 
-    def _initialize_providers(self):
+    def _initialize_providers(self) -> None:
         """初始化可用的AI提供商"""
 
         # 初始化OpenAI
@@ -168,8 +177,8 @@ class AIService:
         # 如果没有指定提供商，返回第一个可用的
         return list(self.providers.values())[0]
 
-    def generate_text(self, prompt: str, provider_name: Optional[str] = None,
-                     model: Optional[str] = None, **kwargs) -> str:
+    async def generate_text(self, prompt: str, provider_name: Optional[str] = None,
+                           model: Optional[str] = None, **kwargs) -> str:
         """使用指定的AI提供商生成文本"""
         try:
             provider = self.get_provider(provider_name)
@@ -196,7 +205,7 @@ class AIService:
             print(f"📝 Prompt: {prompt[:100]}...")
             print(f"🧠 Model: {model}")
 
-            result = provider.generate_text(prompt, model=model, **generation_params)
+            result = await provider.generate_text(prompt, model=model, **generation_params)
 
             print(f"✅ 文本生成完成")
             return result
