@@ -1,8 +1,6 @@
-from pydantic_settings import BaseSettings
+from pydantic import BaseSettings, Field
 from typing import Optional, List
-from pydantic import Field, validator
 import secrets
-
 
 class Settings(BaseSettings):
     """
@@ -13,7 +11,6 @@ class Settings(BaseSettings):
     # ============================================
     # 📱 Application Configuration
     # ============================================
-
     app_name: str = Field(default="Async AI Task Runner", description="Application name")
     app_version: str = Field(default="0.1.0", description="Application version")
     debug: bool = Field(default=False, description="Debug mode")
@@ -22,7 +19,6 @@ class Settings(BaseSettings):
     # ============================================
     # 🔐 Security Configuration
     # ============================================
-
     secret_key: str = Field(
         default_factory=lambda: secrets.token_urlsafe(32),
         description="Application secret key"
@@ -31,17 +27,20 @@ class Settings(BaseSettings):
     # CORS Configuration
     cors_origins_str: str = Field(
         default="http://localhost:8000",
-        description="CORS allowed origins (comma-separated)",
-        alias="cors_origins"
+        description="CORS allowed origins (comma-separated)"
     )
     cors_allow_credentials: bool = Field(default=True, description="Allow CORS credentials")
+
+    @property
+    def cors_origins(self) -> List[str]:
+        """将逗号分隔的字符串转换为列表"""
+        return [origin.strip() for origin in self.cors_origins_str.split(",") if origin.strip()]
 
     # ============================================
     # 🗄️ Database Configuration
     # ============================================
-
     database_url: str = Field(
-        default="postgresql+asyncpg://taskuser:taskpass@localhost:5433/task_runner",
+        default="postgresql+asyncpg://taskuser:taskpass@localhost:5432/task_runner",
         description="Database connection URL"
     )
 
@@ -53,7 +52,6 @@ class Settings(BaseSettings):
     # ============================================
     # 🔴 Redis Configuration
     # ============================================
-
     redis_url: str = Field(
         default="redis://localhost:6379/0",
         description="Redis connection URL"
@@ -64,9 +62,8 @@ class Settings(BaseSettings):
     redis_pool_timeout: int = Field(default=10, description="Redis pool timeout")
 
     # ============================================
-    # ⚡ Celery Configuration
+    # ⚙ Celery Configuration
     # ============================================
-
     celery_broker_url: str = Field(
         default="redis://localhost:6379/1",
         description="Celery broker URL"
@@ -91,7 +88,6 @@ class Settings(BaseSettings):
     # ============================================
     # 🤖 AI Service Configuration
     # ============================================
-
     # OpenAI Configuration
     openai_api_key: Optional[str] = Field(default=None, description="OpenAI API key")
     openai_base_url: str = Field(default="https://api.openai.com/v1", description="OpenAI API base URL")
@@ -110,94 +106,60 @@ class Settings(BaseSettings):
     ai_max_tokens: int = Field(default=1000, description="AI max tokens")
 
     # ============================================
-    # 🌐 Server Configuration
+    # 🌐 MCP Server Configuration
     # ============================================
-
     api_v1_str: str = Field(default="/api/v1", description="API version 1 path")
+
     host: str = Field(default="0.0.0.0", description="Server host")
     port: int = Field(default=8000, description="Server port")
 
     # ============================================
-    # 📊 Monitoring & Logging
+    # 📊 Monitoring & Logging Configuration
     # ============================================
-
-    # Logging Configuration
     log_level: str = Field(default="INFO", description="Logging level")
     show_sql_queries: bool = Field(default=False, description="Show SQL queries in logs")
 
     # Flower Configuration
     flower_port: int = Field(default=5555, description="Flower monitoring port")
-    flower_basic_auth_user: str = Field(default="admin", description="Flower basic auth user")
+    flower_basic_auth_user: str = Field(
+        default="admin",
+        description="Flower basic auth user"
+    )
     flower_basic_auth_password: str = Field(
         default_factory=lambda: secrets.token_urlsafe(16),
         description="Flower basic auth password"
     )
 
-    # Health Check Configuration
-    health_check_interval: int = Field(default=30, description="Health check interval")
-
     # ============================================
-    # 🛡️ Rate Limiting
+    # 🚦 Rate Limiting Configuration
     # ============================================
-
     rate_limit_requests_per_minute: int = Field(default=100, description="Rate limit requests per minute")
     rate_limit_upload_size_mb: int = Field(default=10, description="Rate limit upload size (MB)")
 
     # ============================================
-    # 🌐 Timezone Configuration
+    # 🕐 Timezone Configuration
     # ============================================
-
     timezone: str = Field(default="Asia/Shanghai", description="Application timezone")
 
     # ============================================
-    # 🔗 Development Configuration
+    # 🛠️ Development Configuration
     # ============================================
-
-    # Development Features
     auto_reload: bool = Field(default=True, description="Enable auto reload")
     enable_profiling: bool = Field(default=False, description="Enable profiling")
 
-    # Test Configuration
+    # ============================================
+    # 🧪 Test Configuration
+    # ============================================
     test_database_url: Optional[str] = Field(
         default=None,
         description="Test database connection URL"
     )
-
-    @validator("secret_key", pre=True)
-    def validate_secret_key(cls, v: Optional[str]) -> str:
-        """验证 secret_key 长度和复杂性"""
-        if v is None:
-            raise ValueError("SECRET_KEY is required")
-        if len(v) < 32:
-            raise ValueError("SECRET_KEY must be at least 32 characters long")
-        return v
-
-    @validator("cors_origins_str", pre=True)
-    def validate_cors_origins(cls, v: str) -> str:
-        """验证 CORS origins 格式"""
-        if not v:
-            raise ValueError("At least one CORS origin must be specified")
-        return v
-
-    @property
-    def cors_origins(self) -> List[str]:
-        """将逗号分隔的字符串转换为列表"""
-        return [origin.strip() for origin in self.cors_origins_str.split(",") if origin.strip()]
-
-    @validator("environment", pre=True)
-    def validate_environment(cls, v: str) -> str:
-        """验证环境变量值"""
-        allowed_envs = ["development", "staging", "production"]
-        if v not in allowed_envs:
-            raise ValueError(f"ENVIRONMENT must be one of: {', '.join(allowed_envs)}")
-        return v
 
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
         case_sensitive = False
         extra = "ignore"  # 忽略额外的环境变量
-
 
 # 全局设置实例
 settings = Settings()

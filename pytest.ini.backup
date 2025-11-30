@@ -1,0 +1,57 @@
+[tool:pytest]
+# pytest configuration for Async AI Task Runner
+
+# Test discovery
+testpaths = .
+python_files = test_*.py *_test.py
+python_classes = Test*
+python_functions = test_*
+
+# Output options
+addopts =
+    -v
+    --tb=short
+    --strict-markers
+    --strict-config
+    --cov-report=term-missing
+    --cov-fail-under=90
+    --tb=short
+
+# Markers
+markers =
+    unit: Unit tests - fast, isolated component tests
+    integration: Integration tests - component interaction tests
+    asyncio: Async tests - requires pytest-asyncio
+    performance: Performance tests - measure execution time
+    slow: Slow tests - takes more than 10 seconds
+    external: Tests requiring external services (AI APIs, databases)
+    mcp: MCP protocol tests
+
+# Coverage
+[coverage:run]
+source = app
+omit =
+    */tests/*
+    */venv/*
+    */.venv/*
+    */__pycache__/*
+    */migrations/*
+    */alembic/*
+    setup.py
+
+[coverage:report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    if self.debug:
+    raise AssertionError
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    raise SystemExit
+
+fail_under = 90
+show_missing = true
+precision = 2
+
+[coverage:html]
+directory = htmlcov

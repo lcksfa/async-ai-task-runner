@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from app.core.config import settings
+from app.core.config_fixed import settings
 from app.api.v1.api import api_router
 from app.database import init_db
 

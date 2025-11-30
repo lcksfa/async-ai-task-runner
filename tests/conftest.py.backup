@@ -1,0 +1,403 @@
+# 🧪 Test Configuration and Fixtures
+"""
+pytest configuration for Async AI Task Runner
+Provides async fixtures, test clients, and test data management
+"""
+
+import asyncio
+import os
+import pytest
+import pytest_asyncio
+from typing import AsyncGenerator, Generator, Optional, Any
+from datetime import datetime
+from unittest.mock import AsyncMock, MagicMock
+import httpx
+
+# FastAPI test client
+from fastapi.testclient import TestClient
+from httpx import AsyncClient
+
+# Database imports
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
+
+# Application imports
+from app.main import app
+from app.database import get_db, Base
+from app.models import Task
+from app.schemas import TaskCreate, TaskStatus
+from app.core.config import settings
+
+# ============================================
+# 🗄️ Database Configuration for Testing
+# ============================================
+
+# Use in-memory SQLite for fast testing
+TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
+
+# Create test engine
+test_engine = create_async_engine(
+    TEST_DATABASE_URL,
+    echo=False,
+    poolclass=StaticPool,
+    connect_args={
+        "check_same_thread": False,
+    },
+)
+
+# Create test session factory
+TestSessionLocal = sessionmaker(
+    test_engine, class_=AsyncSession, expire_on_commit=False
+)
+
+
+@pytest_asyncio.fixture(scope="session")
+def event_loop():
+    """Create an instance of the default event loop for the test session."""
+    loop = asyncio.get_event_loop_policy().new_event_loop()
+    yield loop
+    loop.close()
+
+
+@pytest_asyncio.fixture
+async def test_db_session() -> AsyncGenerator[AsyncSession, None]:
+    """
+    Create a fresh database session for each test.
+    Uses in-memory SQLite for fast, isolated testing.
+    """
+    async with test_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    async with TestSessionLocal() as session:
+        try:
+            yield session
+        finally:
+            await session.close()
+
+    # Clean up database after each test
+    async with test_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+
+
+@pytest_asyncio.fixture
+async def test_db_session_with_data(test_db_session: AsyncSession) -> AsyncSession:
+    """
+    Database session with pre-populated test data.
+    """
+    # Create sample tasks
+    sample_tasks = [
+        Task(
+            prompt="Test task 1: Simple question",
+            model="gpt-3.5-turbo",
+            provider="openai",
+            priority=1,
+            status=TaskStatus.PENDING
+        ),
+        Task(
+            prompt="Test task 2: Code generation",
+            model="deepseek-chat",
+            provider="deepseek",
+            priority=3,
+            status=TaskStatus.PROCESSING
+        ),
+        Task(
+            prompt="Test task 3: Data analysis",
+            model="claude-3-sonnet",
+            provider="anthropic",
+            priority=2,
+            status=TaskStatus.COMPLETED,
+            result="Sample analysis result for testing"
+        ),
+        Task(
+            prompt="Test task 4: Failed task",
+            model="gpt-3.5-turbo",
+            provider="openai",
+            priority=1,
+            status=TaskStatus.FAILED,
+            result="Error: API rate limit exceeded"
+        ),
+    ]
+
+    for task in sample_tasks:
+        test_db_session.add(task)
+    await test_db_session.commit()
+
+    return test_db_session
+
+
+# ============================================
+# 🌐 Test Client Configuration
+# ============================================
+
+@pytest.fixture
+def test_client() -> Generator[TestClient, None, None]:
+    """
+    Create a FastAPI test client.
+    Uses synchronous database session for compatibility.
+    """
+    from app.database import SyncSessionLocal
+
+    def override_get_db():
+        try:
+            db = SyncSessionLocal()
+            yield db
+        finally:
+            db.close()
+
+    app.dependency_overrides[get_db] = override_get_db
+
+    with TestClient(app) as client:
+        yield client
+
+    app.dependency_overrides.clear()
+
+
+@pytest_asyncio.fixture
+async def async_client(test_db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
+    """
+    Create an async HTTP client for testing FastAPI endpoints.
+    Uses async database session for full async support.
+    """
+
+    def override_get_db():
+        return test_db_session
+
+    app.dependency_overrides[get_db] = override_get_db
+
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        yield client
+
+    app.dependency_overrides.clear()
+
+
+# ============================================
+# 🏭 Test Data Fixtures
+# ============================================
+
+class SimpleTaskFactory:
+    """Simple task data generator for testing when factory-boy is not available."""
+
+    def __init__(self, session=None):
+        self.session = session
+        self._counter = 1
+
+    def __call__(self, **kwargs):
+        """Create task data with default values."""
+        defaults = {
+            "prompt": f"Generated test task {self._counter}",
+            "model": "gpt-3.5-turbo",
+            "provider": "openai",
+            "priority": self._counter % 10 + 1,
+            "status": TaskStatus.PENDING,
+            "result": None if self._counter % 4 != 0 else f"Generated result {self._counter}",
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow(),
+        }
+        self._counter += 1
+
+        # Override defaults with provided kwargs
+        defaults.update(kwargs)
+        return defaults
+
+@pytest_asyncio.fixture
+async def task_factory(test_db_session: AsyncSession) -> Generator[SimpleTaskFactory, None, None]:
+    """Task factory bound to test database session."""
+    factory = SimpleTaskFactory(test_db_session)
+    yield factory
+
+
+# ============================================
+# 📊 Test Data Fixtures
+# ============================================
+
+@pytest_asyncio.fixture
+async def sample_task_create() -> TaskCreate:
+    """Sample TaskCreate for testing task creation."""
+    return TaskCreate(
+        prompt="What is the capital of France and provide some historical context?",
+        model="gpt-3.5-turbo",
+        provider="openai",
+        priority=3
+    )
+
+
+@pytest_asyncio.fixture
+async def sample_task(test_db_session: AsyncSession) -> Task:
+    """Create a sample task in the database."""
+    task = Task(
+        prompt="Sample AI task for testing",
+        model="deepseek-chat",
+        provider="deepseek",
+        priority=2,
+        status=TaskStatus.PENDING
+    )
+    test_db_session.add(task)
+    await test_db_session.commit()
+    await test_db_session.refresh(task)
+    return task
+
+
+@pytest_asyncio.fixture
+async def completed_task(test_db_session: AsyncSession) -> Task:
+    """Create a completed task in the database."""
+    task = Task(
+        prompt="Completed task for testing",
+        model="gpt-3.5-turbo",
+        provider="openai",
+        priority=1,
+        status=TaskStatus.COMPLETED,
+        result="This is a sample AI-generated response for testing purposes."
+    )
+    test_db_session.add(task)
+    await test_db_session.commit()
+    await test_db_session.refresh(task)
+    return task
+
+
+@pytest_asyncio.fixture
+async def failed_task(test_db_session: AsyncSession) -> Task:
+    """Create a failed task in the database."""
+    task = Task(
+        prompt="Failed task for testing",
+        model="claude-3-sonnet",
+        provider="anthropic",
+        priority=1,
+        status=TaskStatus.FAILED,
+        result="Error: API timeout after 30 seconds"
+    )
+    test_db_session.add(task)
+    await test_db_session.commit()
+    await test_db_session.refresh(task)
+    return task
+
+
+# ============================================
+# 🛠️ Environment Configuration
+# ============================================
+
+@pytest.fixture(autouse=True)
+def setup_test_environment():
+    """Setup test environment variables and configuration."""
+    # Override settings for testing
+    original_settings = {}
+    test_settings = {
+        "DATABASE_URL": TEST_DATABASE_URL,
+        "REDIS_URL": "redis://localhost:6379/0",
+        "CELERY_BROKER_URL": "redis://localhost:6379/1",
+        "CELERY_RESULT_BACKEND": "redis://localhost:6379/2",
+        "SECRET_KEY": "test-secret-key-for-testing-only-32-chars",
+        "DEBUG": True,
+        "ENVIRONMENT": "testing",
+        "LOG_LEVEL": "DEBUG",
+        "OPENAI_API_KEY": "test-openai-key",
+        "DEEPSEEK_API_KEY": "test-deepseek-key",
+        "ANTHROPIC_API_KEY": "test-anthropic-key",
+    }
+
+    # Apply test settings
+    for key, value in test_settings.items():
+        original_settings[key] = getattr(settings, key, None)
+        os.environ[key] = str(value)
+        setattr(settings, key, value)
+
+    yield
+
+    # Restore original settings
+    for key, original_value in original_settings.items():
+        if original_value is None:
+            if hasattr(settings, key):
+                delattr(settings, key)
+        else:
+            setattr(settings, key, original_value)
+
+        if key in os.environ:
+            del os.environ[key]
+
+
+# ============================================
+# 📈 Test Configuration
+# ============================================
+
+@pytest.fixture
+def test_config():
+    """Test configuration dictionary."""
+    return {
+        "API_V1_PREFIX": "/api/v1",
+        "DEFAULT_TIMEOUT": 30.0,
+        "TEST_TASK_PROMPT": "Test prompt for AI processing",
+        "TEST_AI_RESPONSE": "This is a test AI response",
+        "MOCK_TASK_ID": 99999,
+        "EXPECTED_HEADERS": {"Content-Type": "application/json"},
+        "HEALTH_CHECK_ENDPOINT": "/api/v1/health",
+        "TASKS_ENDPOINT": "/api/v1/tasks",
+    }
+
+
+# ============================================
+# 🔧 Utility Functions
+# ============================================
+
+@pytest.fixture
+def assert_task_response():
+    """Utility function to assert task response structure."""
+    def _assert_task_response(response_data: dict, expected_status: str = None):
+        """Assert that task response has correct structure."""
+        assert "id" in response_data
+        assert "prompt" in response_data
+        assert "model" in response_data
+        assert "status" in response_data
+        assert "priority" in response_data
+        assert "created_at" in response_data
+
+        if expected_status:
+            assert response_data["status"] == expected_status
+
+        # Validate timestamp format
+        assert isinstance(response_data["created_at"], str)
+
+        # Validate prompt length
+        assert 1 <= len(response_data["prompt"]) <= 1000
+
+        # Validate priority range
+        assert 1 <= response_data["priority"] <= 10
+
+    return _assert_task_response
+
+
+@pytest.fixture
+def create_test_request_data():
+    """Utility function to create test request data."""
+    def _create_test_request_data(
+        prompt: str = "Test prompt",
+        model: str = "gpt-3.5-turbo",
+        provider: str = "openai",
+        priority: int = 1
+    ) -> dict:
+        return {
+            "prompt": prompt,
+            "model": model,
+            "provider": provider,
+            "priority": priority
+        }
+
+    return _create_test_request_data
+
+
+def pytest_configure(config):
+    """Configure pytest with custom markers and settings."""
+    config.addinivalue_line(
+        "markers", "unit: Mark test as unit test"
+    )
+    config.addinivalue_line(
+        "markers", "integration: Mark test as integration test"
+    )
+    config.addinivalue_line(
+        "markers", "asyncio: Mark test as async test"
+    )
+    config.addinivalue_line(
+        "markers", "slow: Mark test as slow running"
+    )
+    config.addinivalue_line(
+        "markers", "external: Mark test as requiring external services"
+    )

@@ -3,7 +3,7 @@ Celery应用配置
 负责创建和配置Celery实例，作为异步任务处理的中央调度器
 """
 from celery import Celery
-from app.core.config import settings
+from app.core.config_fixed import settings
 
 # 创建Celery实例
 celery_app = Celery(

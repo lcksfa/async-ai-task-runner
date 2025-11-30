@@ -7,7 +7,7 @@ from typing import Dict, Any, Optional
 from abc import ABC, abstractmethod
 import httpx
 import json
-from app.core.config import settings
+from app.core.config_fixed import settings
 
 
 class AIProvider(ABC):
