@@ -2,10 +2,14 @@ from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 from sqlalchemy import select, delete
-from typing import List, Optional
+from sqlalchemy.exc import SQLAlchemyError
+from typing import List, Optional, Union
+import logging
+
 from app.models import Task
-from app.schemas import TaskCreate, TaskUpdate
-from app.schemas import TaskStatus
+from app.schemas import TaskCreate, TaskUpdate, TaskStatus
+
+logger = logging.getLogger(__name__)
 
 
 async def create_task(db: AsyncSession, *, obj_in: TaskCreate) -> Task:
@@ -57,7 +61,7 @@ async def delete_task(db: AsyncSession, *, task_id: int) -> bool:
 
 
 # 同步版本的CRUD函数，用于Celery任务
-def update_task_status_sync(db: Session, task_id: str, status: TaskStatus) -> bool:
+def update_task_status_sync(db: Session, task_id: Union[int, str], status: TaskStatus) -> bool:
     """Update task status (synchronous version for Celery)"""
     try:
         # Try to convert string ID to integer for database query
@@ -72,13 +76,17 @@ def update_task_status_sync(db: Session, task_id: str, status: TaskStatus) -> bo
             db.commit()
             return True
         return False
+    except SQLAlchemyError as e:
+        db.rollback()
+        logger.error(f"Database error updating task status: {e}")
+        return False
     except Exception as e:
         db.rollback()
-        print(f"Error updating task status: {e}")
+        logger.error(f"Unexpected error updating task status: {e}")
         return False
 
 
-def update_task_result_sync(db: Session, task_id: str, status: TaskStatus, result: str = None) -> bool:
+def update_task_result_sync(db: Session, task_id: Union[int, str], status: TaskStatus, result: str = None) -> bool:
     """Update task status and result (synchronous version for Celery)"""
     try:
         # Try to convert string ID to integer for database query
@@ -95,13 +103,17 @@ def update_task_result_sync(db: Session, task_id: str, status: TaskStatus, resul
             db.commit()
             return True
         return False
+    except SQLAlchemyError as e:
+        db.rollback()
+        logger.error(f"Database error updating task result: {e}")
+        return False
     except Exception as e:
         db.rollback()
-        print(f"Error updating task result: {e}")
+        logger.error(f"Unexpected error updating task result: {e}")
         return False
 
 
-def get_task_sync(db: Session, task_id: str) -> Optional[Task]:
+def get_task_sync(db: Session, task_id: Union[int, str]) -> Optional[Task]:
     """Get a task by ID (synchronous version for Celery)"""
     try:
         # Try to convert string ID to integer for database query
@@ -110,8 +122,11 @@ def get_task_sync(db: Session, task_id: str) -> Optional[Task]:
             return db.query(Task).filter(Task.id == int_id).first()
         except ValueError:
             return db.query(Task).filter(Task.id == task_id).first()
+    except SQLAlchemyError as e:
+        logger.error(f"Database error getting task: {e}")
+        return None
     except Exception as e:
-        print(f"Error getting task: {e}")
+        logger.error(f"Unexpected error getting task: {e}")
         return None
 
 
